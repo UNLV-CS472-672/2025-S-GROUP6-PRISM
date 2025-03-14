@@ -24,78 +24,83 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-mq_ek!kc9dju!wwfbb+6syhy=cktdh$&m78lc*@jp#xpdse7%8'
+SECRET_KEY = "django-insecure-mq_ek!kc9dju!wwfbb+6syhy=cktdh$&m78lc*@jp#xpdse7%8"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ['10.238.2.238', 'localhost', '.10.', '.131.']
-ALLOWED_HOSTS = ['*']
+# For production, configure this to frontend server and database
+ALLOWED_HOSTS = ["*"]
 CSRF_TRUSTED_ORIGINS = ["https://gpu.cs.unlv.edu"]
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'corsheaders',
-    'rest_framework',
-    'channels',
-    'users',
-    'courses',
-    'assignments',
-    'drf_spectacular',
-#    'prism',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "corsheaders",
+    "rest_framework",
+    "channels",
+    "users.apps.UsersConfig",
+    "courses.apps.CoursesConfig",
+    "assignments.apps.AssignmentsConfig",
+    "drf_spectacular",
+    #    'prism',
 ]
 
+# Middleware is accessed during each request before accessing the view
+# Implement SecurityMiddleware somewhere
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # "prism_backend.middleware.validateToken.ValidateTokenMiddleware",
 ]
 
-ROOT_URLCONF = 'prism_backend.urls'
-CORS_ALLOW_ALL_ORIGINS = True # For development only, Restrict in production.
+ROOT_URLCONF = "prism_backend.urls"
+CORS_ALLOW_ALL_ORIGINS = True  # For development only, Restrict in production.
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'prism_backend.wsgi.application' # Keep this for traditional HTTP requests
-ASGI_APPLICATION = 'prism_backend.asgi.application'  # Add this for WebSockets
+WSGI_APPLICATION = (
+    "prism_backend.wsgi.application"  # Keep this for traditional HTTP requests
+)
+ASGI_APPLICATION = "prism_backend.asgi.application"  # Add this for WebSockets
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'prism_db',
-        'USER': 'donessie',
-        'PASSWORD': 'Emily!2013',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DBNAME"),
+        "USER": os.getenv("DBUSER"),
+        "PASSWORD": os.getenv("DBPASSWORD"),
+        "HOST": os.getenv("DBHOST"),
+        "PORT": os.getenv("DBPORT"),
     }
 }
 
@@ -105,16 +110,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -122,9 +127,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -134,13 +139,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = '/django-static/'
+STATIC_URL = "/django-static/"
 STATIC_ROOT = "/var/www/django-static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CHANNEL_LAYERS = {
     "default": {
@@ -152,10 +157,10 @@ CHANNEL_LAYERS = {
     },
 }
 
-#asssinging our custom user model to be the defaulkt user model
-AUTH_USER_MODEL = 'users.User'
+# asssinging our custom user model to be the defaulkt user model
+AUTH_USER_MODEL = "users.User"
 
-#setting up the automatic documentation, this is the schema we will use openapi
+# setting up the automatic documentation, this is the schema we will use openapi
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

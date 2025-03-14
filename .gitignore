@@ -1,0 +1,14 @@
+backend/SQL/AssignmentsAssignments.sql
+backend/SQL/AssignmentsConfirmedCheater.sql
+backend/SQL/AssignmentsFlaggedStudent.sql
+backend/SQL/AssignmentsFlaggedSubmissions.sql
+backend/SQL/AssignmentsFlaggedSubmissionsSimilarityWith.sql
+backend/SQL/assignmentsStudents.sql
+backend/SQL/AssignmentsSubmission.sql
+backend/SQL/CoursesClass.sql
+backend/SQL/CoursesProfessor.sql
+backend/SQL/CoursesProfessorClassSection.sql
+backend/SQL/CoursesSemesterInsertion.sql
+backend/SQL/UserGroupInsertion.sql
+backend/SQL/UserPermissionsInsertion.sql
+backend/SQL/UserTableInsertion.sql
