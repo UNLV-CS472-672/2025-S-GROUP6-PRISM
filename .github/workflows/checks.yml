@@ -31,8 +31,7 @@ jobs:
 
       - name: Install requirements
         run: |
-          pip install -r requirements/django-venv-requirements_2-23-2025.txt
-          pip install -r requirements/apt-requirements_2-23-2025.txt
+          pip install -r backend/requirements.txt
 
       - name: Wait for PostgreSQL to be ready
         run: sleep 10
