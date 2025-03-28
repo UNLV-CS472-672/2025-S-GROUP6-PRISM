@@ -31,6 +31,7 @@ const LoginComponent: React.FC = () => {
 	} | null>(null)
 	const context = useAuth()
 
+	const [loading, setLoading] = useState(false);
 	// Hydrated statee added to handle mismatched rendering
 	const [hydrated, setHydrated] = useState(false)
 
@@ -43,6 +44,13 @@ const LoginComponent: React.FC = () => {
 	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
+		// Validate there's input
+		if (!username || !password) {
+			setMessage({ type: "error", text: "Username and password are required." });
+			return;
+		}
+
+		setLoading(true);
 		try {
 			const response = await easyFetch("http://localhost:8000/api/login", {
 				method: "POST",
@@ -56,9 +64,13 @@ const LoginComponent: React.FC = () => {
 				console.log(data["user"])
 				context?.login(data["user"])
 				router.push("/dashboard")
+			} else {
+				setMessage({ type: "error", text: ` ${data.error}`});
 			}
 		} catch (err) {
-			console.error("Login error:", err)
+			setMessage({ type: "error", text: " Server error. Please try again."});
+		} finally {
+			setLoading(false);
 		}
 	}
 
@@ -90,7 +102,6 @@ const LoginComponent: React.FC = () => {
 						margin="normal"
 						value={username}
 						onChange={(e) => setUsername(e.target.value)}
-						required
 						InputLabelProps={{ shrink: true }}
 						inputProps={{ "aria-label": "Username" }}
 					/>
@@ -110,7 +121,6 @@ const LoginComponent: React.FC = () => {
 						margin="normal"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
-						required
 						InputLabelProps={{ shrink: true }}
 						inputProps={{ "aria-labelledby": "password-label" }}
 					/>
@@ -121,8 +131,14 @@ const LoginComponent: React.FC = () => {
 					>
 						Password
 					</label>
-					<Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-						Login
+					<Button
+						type="submit"
+						variant="contained"
+						fullWidth
+						sx={{ mt: 2 }}
+						disabled={loading}
+					>
+						{loading ? "Logging in..." : "Login"}
 					</Button>
 				</form>
 
