@@ -1,0 +1,41 @@
+name: Frontend CI
+
+# Runs on push and pull from main and dev branches
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'frontend/**'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 2025-S-Group6-PRISM/frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Match your local version if needed
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci # Installs dependencies cleanly (faster and safer than npm install)
+
+      - name: Run tests with Jest
+        run: npm test
+
+      - name: Run lint checks
+        run: npm run lint
+
+      - name: Build Next.js app
+        run: npm run build

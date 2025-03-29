@@ -22,7 +22,10 @@ import { useAuth } from "@/context/AuthContext"
 import { easyFetch } from "@/utils/fetchWrapper"
 
 const LoginComponent: React.FC = () => {
+	// for routing purposes, should be at the top of all files
 	const router = useRouter()
+
+	// variables for html and testing
 	const [username, setUsername] = useState<string>("")
 	const [password, setPassword] = useState<string>("")
 	const [message, setMessage] = useState<{
@@ -31,8 +34,11 @@ const LoginComponent: React.FC = () => {
 	} | null>(null)
 	const context = useAuth()
 
+
+	// for loading states
 	const [loading, setLoading] = useState(false);
-	// Hydrated statee added to handle mismatched rendering
+
+	// Hydrated state added to handle mismatched rendering
 	const [hydrated, setHydrated] = useState(false)
 
 	useEffect(() => {
@@ -41,7 +47,10 @@ const LoginComponent: React.FC = () => {
 
 	if (!hydrated) return null // Prevents SSR mismatches
 
+	// handles the submition of the html form to offer interactivity
+	// this gets activated when the form is submitted when login is attempted
 	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+		// creates a non-cancelable event
 		event.preventDefault()
 
 		// Validate there's input
@@ -50,7 +59,10 @@ const LoginComponent: React.FC = () => {
 			return;
 		}
 
+		// sets loading status
 		setLoading(true);
+
+		// handles the form submission by fetching the api call for logging in
 		try {
 			const response = await easyFetch("http://localhost:8000/api/login", {
 				method: "POST",
@@ -58,8 +70,10 @@ const LoginComponent: React.FC = () => {
 				body: JSON.stringify({ username, password }),
 			})
 
+			// await data response
 			const data = await response.json()
 
+			// if the response is good, route to dashboard. error out otherwise
 			if (response.ok) {
 				console.log(data["user"])
 				context?.login(data["user"])
