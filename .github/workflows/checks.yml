@@ -1,9 +1,42 @@
-name: Django Tests
+name: Django CI Pipeline
 
-on: [push]
+on:
+  push:
+  pull_request:
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.12
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/django-venv-requirements_2-23-2025.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Requirements
+        run: |
+          pip install -r requirements/django-venv-requirements_2-23-2025.txt
+          pip install -r requirements/apt-requirements_2-23-2025.txt
+
+      - name: Lint Code with Flake8
+        run: |
+          pip install flake8
+          flake8 .
+
   test:
+    name: Run Django Tests with Coverage
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -19,17 +52,24 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.12
 
-      - name: Install requirements
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/django-venv-requirements_2-23-2025.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Requirements
         run: |
           pip install -r requirements/django-venv-requirements_2-23-2025.txt
           pip install -r requirements/apt-requirements_2-23-2025.txt
@@ -62,7 +102,7 @@ jobs:
           cd backend
           python manage.py migrate
 
-      - name: Run tests with coverage
+      - name: Run Tests with Coverage
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DEBUG: ${{ secrets.DEBUG }}
@@ -74,11 +114,10 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
         run: |
           cd backend
-          coverage run manage.py test -v 2
-          coverage report
-          coverage html
+          coverage erase
+          pytest --cov=. --cov-report=term-missing --cov-report=html
 
-      - name: Upload coverage HTML report
+      - name: Upload Coverage HTML Report Artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report

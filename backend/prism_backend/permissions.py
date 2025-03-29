@@ -1,1 +1,1 @@
-"""Implement custom permissions here"""
+"""Implement custom permissions here."""

@@ -1,45 +1,74 @@
-'''
-    Created by Daniel Levy, 2/21/2025
+"""
+Created by Daniel Levy, 2/21/2025.
 
-    This script is responsible for the data ingestion of
-    CodeGrade metadata into the database. We are primarily
-    concerned with models from the `assignments` app. We will also
-    manually validate that there are no errors in the provided
-    CodeGrade data files.
-'''
-# Django setup
-import os, django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE","prism_backend.settings")
+This script is responsible for the data ingestion of CodeGrade metadata
+into the database. We are primarily concerned with models from the
+`assignments` app. We will also manually validate that there are no
+errors in the provided CodeGrade data files.
+"""
+
+import os
+import json
+import math
+from zipfile import ZipFile
+
+import django
+import pandas as pd
+
+from assignments.models import Student
+import data_ingestion.errors.DataIngestionErrorBuilder as eb
+from data_ingestion.errors.DataIngestionError import DataIngestionError
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "prism_backend.settings")
 django.setup()
 
-from zipfile import ZipFile
-import pandas as pd
-import math
-import json
-from errors.DataIngestionError import DataIngestionError
-import errors.DataIngestionErrorBuilder as eb
-from assignments.models import Student, Assignment, Submission
 
 class CodeGradeDataIngestion:
+    """
+    Class to ingest CodeGrade data.
 
-    # Fields
-    __dirName = None            # Directory containing all data (should be 'codegrade_data')
-    __submissionFileName = None # Current course/assignment we are checking data for
+    This class handles the ingestion of CodeGrade data, including the extraction
+    of student submissions, validation of metadata, and population of the database.
+    It performs various checks to ensure the integrity and completeness of the data.
+
+    Attributes:
+        __dirName (str): Directory containing all data (should be 'codegrade_data').
+        __submissionFileName (str): Current course/assignment being processed.
+        __className (str): Name of the class extracted from the ZIP file.
+        __section (str): Section of the class extracted from the ZIP file.
+        __semester (str): Semester information extracted from the ZIP file.
+        __assignmentName (str): Assignment name extracted from the ZIP file.
+        __zipFileDirectory (str): Directory containing unzipped student submissions.
+        __submissions (list): List of CodeGrade submission IDs.
+        __users (list): List of CodeGrade user IDs.
+        __metaData (DataFrame): DataFrame containing CodeGrade metadata.
+        __errors (list): List of errors encountered during data ingestion.
+        fileSeen (set): Static set tracking all processed ZIP files.
+        allErrors (list): Static list tracking all errors encountered.
+    """
+
+    __dirName = None
+    __submissionFileName = None  # Current course/assignment being processed
     __className = None
     __section = None
     __semester = None
     __assignmentName = None
-    __zipFileDirectory = None   # Directory that contains unzipped student submissions
-    __submissions = None        # List of CodeGrade submission IDs
-    __users = None              # List of CodeGrade user IDs
-    __metaData = None           # Dataframe containing CodeGrade meta data
+    __zipFileDirectory = None  # Directory containing unzipped student submissions
+    __submissions = None  # List of CodeGrade submission IDs
+    __users = None  # List of CodeGrade user IDs
+    __metaData = None  # DataFrame containing CodeGrade metadata
     __errors = None
 
-    fileSeen = set()    # Static set that keeps track of every file seen
-    allErrors = list()  # Static list that keeps track of all errors found
+    fileSeen = set()  # Static set tracking processed ZIP files
+    allErrors = list()  # Static list tracking all errors encountered
 
-    # Methods
     def __init__(self, dirName):
+        """
+        Initialize the CodeGradeDataIngestion instance.
+
+        Args:
+            dirName (str): Name of the directory to be used for data processing.
+        """
         self.__dirName = dirName
         self.__submissionFileName = ""
         self.__className = ""
@@ -52,15 +81,28 @@ class CodeGradeDataIngestion:
         self.__metaData = list()
         self.__errors = list()
 
-    '''
-        This method will check the current directory and find the next ZIP
-        file to extract and check the student submissions for.
-    '''
     def __extractStudentFilesFromZIP(self):
+        """
+        Extract student submission files from ZIP archives.
+
+        Iterates through all files in the directory specified by __dirName.
+        Identifies ZIP files that have not been processed (not in fileSeen),
+        parses their names, and extracts their contents into a designated subdirectory.
+
+        Raises:
+            ValueError: If no new ZIP files are found or if duplicate ZIP files are detected.
+
+        Side Effects:
+            - Extracts ZIP file contents into a subdirectory.
+            - Updates the fileSeen set.
+            - Appends an error to __errors if an issue is encountered.
+        """
         for file in os.listdir(self.__dirName):
-            if file.endswith('.zip') and file not in CodeGradeDataIngestion.fileSeen:
+            if file.endswith(".zip") and file not in CodeGradeDataIngestion.fileSeen:
                 self.__parseZipFileName(file)
-                self.__zipFileDirectory = f"{self.__dirName}/{self.__submissionFileName}"
+                self.__zipFileDirectory = f"{
+                    self.__dirName}/{
+                    self.__submissionFileName}"
 
                 zipFile = ZipFile(f"{self.__dirName}/{file}")
                 zipFile.extractall(self.__zipFileDirectory)
@@ -68,198 +110,282 @@ class CodeGradeDataIngestion:
                 CodeGradeDataIngestion.fileSeen.add(file)
                 return
 
-        # ERROR CHECK #1: If we reach this point, then we either have a duplicated
-        # ZIP file in the directory or there are no ZIP files in the directory, so we have to create an error
-        self.__errors.append(eb.DataIngestionErrorBuilder()
-                             .addFileName(self.__dirName)
-                             .addMsg(f"A duplicate .zip file was found containing student submission in {self.__dirName}")
-                             .createError())
+        self.__errors.append(
+            eb.DataIngestionErrorBuilder()
+            .addFileName(self.__dirName)
+            .addMsg(
+                f"A duplicate .zip file was found containing student submission in {
+                    self.__dirName}"
+            )
+            .createError()
+        )
         raise ValueError()
 
-    '''
-        CodeGrade exports a ZIP file with the following title format:
-            '<CS Class> <Section> - <Semester> <Assignment Name>'
-        
-        This method will simply parse the title and save each part to 
-        the object's appropriate fields. No error handling is needed.
-    '''
     def __parseZipFileName(self, name):
-        self.__submissionFileName = name.removesuffix('.zip')
-        zipFields = name.split('-', 2)
+        """
+        Parse the given ZIP file name to extract class-related attributes.
 
-        canvasName = zipFields[0].split(' ')
-        self.__className = canvasName[0] + ' ' + canvasName[1]
+        Expected format: "<Class Name> <Section>-<Semester>-<Assignment Name>.zip"
+
+        Sets the following attributes:
+            __submissionFileName: Name without the ".zip" extension.
+            __className: Class name extracted.
+            __section: Section of the class.
+            __semester: Semester information.
+            __assignmentName: Assignment name.
+
+        Args:
+            name (str): The name of the ZIP file.
+        """
+        self.__submissionFileName = name.removesuffix(".zip")
+        zipFields = name.split("-", 2)
+
+        canvasName = zipFields[0].split(" ")
+        self.__className = canvasName[0] + " " + canvasName[1]
         self.__section = canvasName[2]
 
         self.__semester = zipFields[1].strip()
         self.__assignmentName = zipFields[2][:-4].strip()
 
-    '''
-        Every exported CodeGrade ZIP file will contain a .cg-info.json file that keeps
-        track of all submissions and users. This is needed to ensure data authentication,
-        so it must be present in the file.
-    '''
     def __checkIfJSONFileExists(self):
-        if not os.path.exists(f"{self.__zipFileDirectory}/.cg-info.json"):
-            self.__errors.append(eb.DataIngestionErrorBuilder()
-                                 .addFileName(self.__dirName)
-                                 .addMsg("The .cg-info.json file is missing.")
-                                 .createError())
+        """
+        Check if the .cg-info.json file exists in the extracted ZIP directory.
 
-    '''
-        Once the ZIP file has been extracted, we can now take the json 
-        data and populate the submissions/users fields.
-    '''
+        Appends an error if the file is missing.
+
+        Raises:
+            DataIngestionError: If the .cg-info.json file is not found.
+        """
+        if not os.path.exists(f"{self.__zipFileDirectory}/.cg-info.json"):
+            self.__errors.append(
+                eb.DataIngestionErrorBuilder()
+                .addFileName(self.__dirName)
+                .addMsg("The .cg-info.json file is missing.")
+                .createError()
+            )
+
     def __extractJSON(self):
+        """
+        Extract and process JSON data from the CodeGrade information file.
+
+        Loads the .cg-info.json file and extracts submission and user IDs.
+
+        Raises:
+            FileNotFoundError: If the .cg-info.json file is missing.
+            JSONDecodeError: If the JSON is malformed.
+        """
         self.__checkIfJSONFileExists()
 
-        cgInfo = open(f'{self.__zipFileDirectory}/.cg-info.json', 'r')
-        jsonStudentData = json.load(cgInfo)
+        with open(f"{self.__zipFileDirectory}/.cg-info.json", "r") as cgInfo:
+            jsonStudentData = json.load(cgInfo)
 
-        self.__submissions, self.__users = jsonStudentData['submission_ids'], jsonStudentData['user_ids']
+        self.__submissions, self.__users = (
+            jsonStudentData["submission_ids"],
+            jsonStudentData["user_ids"],
+        )
 
-    '''
-        This method handles the extraction of CodeGrade metadata for
-        each student which is exported through a CSV file.
-    '''
     def __extractMetaDataFromCSV(self):
+        """
+        Extract metadata from a CSV file in the directory.
+
+        Searches for a CSV file matching __submissionFileName in __dirName.
+        If found, reads it into a pandas DataFrame and stores it in __metaData.
+
+        Raises:
+            ValueError: If the CSV file is not found.
+
+        Side Effects:
+            Updates __metaData or logs an error.
+        """
         for file in os.listdir(self.__dirName):
             if file == f"{self.__submissionFileName}.csv":
-                csvFile = open(f"{self.__dirName}/{file}", 'r')
-                df = pd.read_csv(csvFile)
-                csvFile.close()
+                with open(f"{self.__dirName}/{file}", "r") as csvFile:
+                    df = pd.read_csv(csvFile)
                 self.__metaData = df
                 return
 
-        # ERROR CHECK #1: If we could not find the appropriate metadata .csv file
-        #                 for the current ZIP file we extracted, generate an error
-        self.__errors.append(eb.DataIngestionErrorBuilder()
-                                     .addFileName(self.__submissionFileName)
-                                     .addMsg(f"{self.__submissionFileName}.csv was not found in {self.__dirName}.")
-                                     .createError())
+        self.__errors.append(
+            eb.DataIngestionErrorBuilder()
+            .addFileName(self.__submissionFileName)
+            .addMsg(
+                f"{
+                    self.__submissionFileName}.csv was not found in {
+                    self.__dirName}."
+            )
+            .createError()
+        )
         raise ValueError()
 
-    '''
-        Here, we verify that every submission ID is linked back to a student. We check
-        the ZIP directory to make sure the submission is there and ensure the student 
-        name matches the name associated with the given submission.
-    '''
     def __verifyStudentSubmissionExists(self):
+        """
+        Verify the existence and correctness of student submissions.
+
+        Iterates through submission IDs and checks if the corresponding student file
+        exists. Validates that the submission ID in the file matches the expected value.
+        Logs an error if discrepancies are found.
+
+        Raises:
+            Exception: Catches exceptions during file existence check and continues.
+        """
         for key, value in self.__submissions.items():
             try:
                 subID, studentName = self.__checkIfStudentFileExists(key)
-            except:
+            except Exception:
                 continue
             else:
-                # ERROR CHECK #1: Make sure the submission ID matches for the current student
                 if subID != value:
-                    self.__errors.append(eb.DataIngestionErrorBuilder()
-                                         .addFileName(self.__zipFileDirectory)
-                                         .addMsg(f"The submission ID #{subID} for {studentName} is not correct.")
-                                         .createError())
+                    self.__errors.append(
+                        eb.DataIngestionErrorBuilder()
+                        .addFileName(self.__zipFileDirectory)
+                        .addMsg(
+                            f"The submission ID #{subID} for {studentName} is not correct."
+                        )
+                        .createError()
+                    )
 
-    '''
-        Similarly, we check to make sure that each user ID in the metadata
-        corresponds to exactly one submission, and that submission matches
-        the appropriate student name.
-    '''
     def __verifyStudentUserExistsInMetaData(self):
-        for key, value in self.__users.items():
+        """
+        Verify that each student user has valid metadata.
 
+        For each user, checks that:
+          1. The user has a valid submission (exists in the ZIP directory).
+          2. There is exactly one metadata entry.
+          3. The student name matches the metadata.
+
+        Raises:
+            ValueError: If any check fails.
+        """
+        for key, value in self.__users.items():
             try:
                 subID, studentName = self.__checkIfStudentFileExists(key)
-            except:
+            except Exception:
                 raise ValueError()
             else:
-
-                entry = self.__metaData.loc[self.__metaData['Id'] == value]
+                entry = self.__metaData.loc[self.__metaData["Id"] == value]
                 entriesFound = len(entry)
 
-                # ERROR CHECK #1: Make sure the current student has a valid submission
                 if entriesFound < 1:
-                    self.__errors.append(eb.DataIngestionErrorBuilder()
-                                         .addFileName(self.__submissionFileName)
-                                         .addMsg(f"User ID {value} does not have any metadata associated with it.")
-                                         .createError())
+                    self.__errors.append(
+                        eb.DataIngestionErrorBuilder()
+                        .addFileName(self.__submissionFileName)
+                        .addMsg(
+                            f"User ID {value} does not have any metadata associated with it."
+                        )
+                        .createError()
+                    )
                     raise ValueError()
-
-                # ERROR CHECK #2: Make sure the current student does not have multiple submissions
                 elif entriesFound > 1:
-                    self.__errors.append(eb.DataIngestionErrorBuilder()
-                                         .addFileName(self.__submissionFileName)
-                                         .addMsg(f"User ID {value} has multiple metadata entries associated with it.")
-                                         .createError())
+                    self.__errors.append(
+                        eb.DataIngestionErrorBuilder()
+                        .addFileName(self.__submissionFileName)
+                        .addMsg(
+                            f"User ID {value} has multiple metadata entries associated with it."
+                        )
+                        .createError()
+                    )
                     raise ValueError()
 
-                # ERROR CHECK #3: Make sure the student name matches the name in the user ID portion of cg_data.json
                 if entry.iloc[0, 2] != studentName:
-                    self.__errors.append(eb.DataIngestionErrorBuilder()
-                                         .addFileName(self.__submissionFileName)
-                                         .addMsg(f"User ID {value} does not match the given name in the metadata file.")
-                                         .createError())
+                    self.__errors.append(
+                        eb.DataIngestionErrorBuilder()
+                        .addFileName(self.__submissionFileName)
+                        .addMsg(
+                            f"User ID {value} does not match the given name in the metadata file."
+                        )
+                        .createError()
+                    )
                     raise ValueError()
 
-    '''
-        For this helper method, we are checking whether or not 
-        a student has a directory inside the ZIP directory that
-        contains their submitted code files to CodeGrade.
-    '''
     def __checkIfStudentFileExists(self, fileName):
-        subID, studentName = fileName.split('-', 1)
-        studentName = studentName.strip()
+        """
+        Check if a student's submission file exists in the ZIP directory.
 
+        Args:
+            fileName (str): Name of the student's submission file in the format "<submissionID>-<studentName>".
+
+        Returns:
+            tuple: (subID (int), studentName (str))
+
+        Raises:
+            ValueError: If the student's submission file is not found.
+        """
+        subID, studentName = fileName.split("-", 1)
+        studentName = studentName.strip()
         subID = int(subID.strip())
 
-        # ERROR CHECK #1: Make sure the student has a submission in the ZIP directory
         if fileName not in os.listdir(self.__zipFileDirectory):
-            self.__errors.append(eb.DataIngestionErrorBuilder()
-                                 .addFileName(self.__submissionFileName)
-                                 .addMsg(f"Submission for {studentName} is missing in zip directory.")
-                                 .createError())
+            self.__errors.append(
+                eb.DataIngestionErrorBuilder()
+                .addFileName(self.__submissionFileName)
+                .addMsg(f"Submission for {studentName} is missing in zip directory.")
+                .createError()
+            )
             raise ValueError()
 
         return subID, studentName
 
-    '''
-        This method will populate the database by inserting
-        a new entry for each student.
-    '''
     def __populateDatabase(self):
+        """
+        Populate the database with student information from metadata.
 
-        # First, add new entry for Semester
-        for index, student in self.__metaData.iterrows():
-            names = student['Name'].split(' ')
+        Iterates through the metadata DataFrame and uses the information to
+        create or retrieve Student objects. The student's full name is split into
+        first and last names. Email is constructed by appending "@unlv.nevada.edu" to the username.
+        """
+        for _, student in self.__metaData.iterrows():
+            names = student["Name"].split(" ")
 
-            # Add new Student to database
             try:
-                currStudent = Student.objects.get_or_create(email = student['Username'] + "@unlv.nevada.edu",
-                                                            codeGrade_id = student['Id'],
-                                                            username = student['Username'],
-                                                            first_name = names[0],
-                                                            last_name = names[1])
+                currStudent = Student.objects.get_or_create(
+                    email=student["Username"] + "@unlv.nevada.edu",
+                    codeGrade_id=student["Id"],
+                    username=student["Username"],
+                    first_name=names[0],
+                    last_name=names[1],
+                )
             except Student.DoesNotExist:
-                currStudent = Student(email = student['Username'] + "@unlv.nevada.edu",
-                                      codeGrade_id=student['Id'],
-                                      username=student['Username'],
-                                      first_name=names[0],
-                                      last_name=names[1])
+                currStudent = Student(
+                    email=student["Username"] + "@unlv.nevada.edu",
+                    codeGrade_id=student["Id"],
+                    username=student["Username"],
+                    first_name=names[0],
+                    last_name=names[1],
+                )
                 currStudent.save()
 
-    '''
-        This is main method that is responsible for parsing
-        and validating all CodeGrade data.
-    '''
     def extractData(self):
+        """
+        Extract and process student submission data from the specified directory.
+
+        Iterates through the submissions and performs the following steps:
+          1. Extract student files from ZIP archives.
+          2. Extract JSON data.
+          3. Extract metadata from CSV files.
+          4. Verify student submissions exist.
+          5. Verify student users exist in the metadata.
+
+        If errors occur during processing, they are collected and added to a global error list.
+        After processing all submissions, any accumulated errors are written to a JSON file.
+        If no errors occur, the database is populated with valid submission data.
+
+        Raises:
+            Exceptions are caught internally. Errors are logged and stored in a JSON file.
+
+        Side Effects:
+            - Updates global error list (allErrors).
+            - Writes errors to a JSON file if any are encountered.
+            - Populates the database with valid data.
+        """
         submissionDirLength = len(os.listdir(self.__dirName))
 
-        for i in range(math.ceil(submissionDirLength/2)):
+        for i in range(math.ceil(submissionDirLength / 2)):
             try:
                 self.__extractStudentFilesFromZIP()
                 self.__extractJSON()
                 self.__extractMetaDataFromCSV()
                 self.__verifyStudentSubmissionExists()
                 self.__verifyStudentUserExistsInMetaData()
-            except:
+            except Exception:
                 for e in self.__errors:
                     CodeGradeDataIngestion.allErrors.append(e)
                 self.__errors = list()
@@ -267,14 +393,27 @@ class CodeGradeDataIngestion:
             else:
                 self.__populateDatabase()
 
-        if(len(CodeGradeDataIngestion.allErrors) > 0):
-            DataIngestionError.createErrorJSON("codegrade_data_errors",CodeGradeDataIngestion.allErrors)
+        if len(CodeGradeDataIngestion.allErrors) > 0:
+            DataIngestionError.createErrorJSON(
+                "codegrade_data_errors", CodeGradeDataIngestion.allErrors
+            )
             CodeGradeDataIngestion.allErrors = list()
             CodeGradeDataIngestion.fileSeen = set()
 
+
 def main():
+    """
+    Initiate the CodeGrade data ingestion process.
+
+    Creates an instance of CodeGradeDataIngestion with the specified data source and
+    calls its extractData method.
+
+    Raises:
+        Exceptions from instantiation or execution of extractData will propagate.
+    """
     cgData = CodeGradeDataIngestion("codegrade_data")
     cgData.extractData()
+
 
 if __name__ == "__main__":
     main()

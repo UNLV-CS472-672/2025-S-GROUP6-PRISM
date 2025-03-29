@@ -1,6 +1,4 @@
-"""
-Assignments Views with Enhanced Filtering, Ordering, and Search Capabilities.
-"""
+"""Assignment views with enhanced filtering, ordering, and search capabilities."""
 
 from assignments import serializers
 from assignments import models
@@ -8,17 +6,18 @@ from rest_framework import viewsets
 from django_filters import rest_framework as filters
 from rest_framework.filters import OrderingFilter, SearchFilter
 
-# below imports are for filtering / querying
 from rest_framework.permissions import IsAuthenticated
 from assignments.models import FlaggedSubmission
 from assignments.serializers import FlaggedSubmissionSerializer
 from users.permissions import is_admin
 
-# from courses.models import ProfessorClassSection
-
 
 class StudentVS(viewsets.ModelViewSet):
-    """Student Model ViewSet."""
+    """
+    Provide CRUD operations for the Student model.
+
+    Supports filtering, ordering, and searching functionality.
+    """
 
     queryset = models.Student.objects.all()
     serializer_class = serializers.StudentSerializer
@@ -30,7 +29,11 @@ class StudentVS(viewsets.ModelViewSet):
 
 
 class FlaggedStudentVS(viewsets.ModelViewSet):
-    """Flagged Student Model ViewSet."""
+    """
+    Provide CRUD operations for FlaggedStudent objects.
+
+    Supports filtering, ordering, and search.
+    """
 
     queryset = models.FlaggedStudent.objects.all()
     serializer_class = serializers.FlaggedStudentSerializer
@@ -44,7 +47,11 @@ class FlaggedStudentVS(viewsets.ModelViewSet):
 
 
 class AssignmentVS(viewsets.ModelViewSet):
-    """Assignment Model ViewSet."""
+    """
+    Provide CRUD operations for Assignment objects.
+
+    Supports filtering, ordering, and search capabilities.
+    """
 
     queryset = models.Assignment.objects.all()
     serializer_class = serializers.AssignmentSerializer
@@ -62,11 +69,19 @@ class AssignmentVS(viewsets.ModelViewSet):
         "assignment_number",
     ]
     ordering = ["assignment_number"]
-    search_fields = ["title", "class_instance__name", "professor__user__first_name"]
+    search_fields = [
+        "title",
+        "class_instance__name",
+        "professor__user__first_name",
+    ]
 
 
 class SubmissionVS(viewsets.ModelViewSet):
-    """Submission Model ViewSet."""
+    """
+    Provide CRUD operations for Submission objects.
+
+    Supports filtering, ordering, and search functionality.
+    """
 
     queryset = models.Submission.objects.all()
     serializer_class = serializers.SubmissionSerializer
@@ -90,7 +105,11 @@ class SubmissionVS(viewsets.ModelViewSet):
 
 
 class FlaggedSubmissionVS(viewsets.ModelViewSet):
-    """Flagged Submission Model ViewSet."""
+    """
+    Provide CRUD operations for FlaggedSubmission objects.
+
+    Supports filtering, ordering, and searching functionality.
+    """
 
     queryset = models.FlaggedSubmission.objects.all()
     serializer_class = serializers.FlaggedSubmissionSerializer
@@ -110,7 +129,11 @@ class FlaggedSubmissionVS(viewsets.ModelViewSet):
 
 
 class ConfirmedCheaterVS(viewsets.ModelViewSet):
-    """Confirmed Cheater Model ViewSet."""
+    """
+    Provide CRUD operations for ConfirmedCheater objects.
+
+    Supports filtering, ordering, and searching.
+    """
 
     queryset = models.ConfirmedCheater.objects.all()
     serializer_class = serializers.ConfirmedCheaterSerializer
@@ -128,16 +151,13 @@ class ConfirmedCheaterVS(viewsets.ModelViewSet):
     ordering = ["confirmed_date"]
 
 
-# an extension of the flaggedSubmissionVS. It supports searching by file name and professor. Only lets a professor see their classes,
-# flaggedSubmissionVS is more suitable to be used by an admin, since it shows data from all classes.
 class PlagiarismReportViewSet(viewsets.ModelViewSet):
     """
-    Returns plagiarism reports (flagged submissions) filtered by semester and/or course,
-    but only for courses the authenticated professor is assigned to.
+    Provide flagged submission reports based on user access level.
+
+    Admins see all, professors see their own.
     """
 
-    # This lets DRF use FlaggedSubmissionSerializer to convert FlaggedSubmission model instances into
-    # JSON data before sending it in the API response.
     serializer_class = FlaggedSubmissionSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.DjangoFilterBackend, OrderingFilter, SearchFilter]
@@ -155,9 +175,13 @@ class PlagiarismReportViewSet(viewsets.ModelViewSet):
     search_fields = ["file_name", "submission__professor__user__first_name"]
 
     def get_queryset(self):
+        """
+        Return the queryset of flagged submissions based on user's role.
+
+        Admins see all, professors see only their own.
+        """
         user = self.request.user
 
-        # Admins should see all flagged submissions. is_admin is from users/permissions.py
         if is_admin(user):
             return FlaggedSubmission.objects.all()
         else:

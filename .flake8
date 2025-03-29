@@ -1,0 +1,18 @@
+[flake8]
+max-line-length = 79
+extend-ignore = E501, W503
+select = C,E,F,W,D
+exclude =
+    venv,
+    __pycache__,
+    migrations,
+    .env,
+    __init__.py,
+    .pytest_cache,
+    .tox,
+    .venv,
+    .git,
+    .idea,
+    .vscode,
+    .mypy_cache,
+    .coverage.*
