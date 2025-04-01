@@ -15,7 +15,6 @@ import csv
 import shutil
 import datetime
 
-import httpx
 from httpx import ReadError
 import codegrade
 from codegrade.utils import select_from_list
