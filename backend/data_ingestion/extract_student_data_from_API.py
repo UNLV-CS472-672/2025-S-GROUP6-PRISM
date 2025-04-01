@@ -9,12 +9,14 @@ import os
 import sys
 import time
 import zipfile
+from zipfile import BadZipFile
 import json
 import csv
 import shutil
 import datetime
 
 import httpx
+from httpx import ReadError
 import codegrade
 from codegrade.utils import select_from_list
 
@@ -26,8 +28,8 @@ class API_Data:
         """Initialize the API_Data instance with CodeGrade client."""
         self.client = client
         self.course_name = ""
-        self.course = self.get_course(client)
-        self.assignments = self.get_assignments()
+        self.course = None
+        self.assignments = None
         self.create_folder_path = ""
         self.course_info = {}
         self.all_assignments = []
@@ -186,7 +188,7 @@ class API_Data:
                 type="zip",
             )
             zipdata = self.client.file.download(filename=zipinfo.name)
-        except httpx.ReadError:
+        except ReadError:
             if not retries:
                 raise
             time.sleep(1)
@@ -212,7 +214,7 @@ class API_Data:
                         os.path.join(student_dir, filename), "wb"
                     ) as target:
                         shutil.copyfileobj(source, target)
-        except zipfile.BadZipFile:
+        except BadZipFile:
             print("Invalid zip file", file=sys.stderr)
 
     def get_output_dir(self, course_name, assignment):
@@ -368,9 +370,13 @@ def main():
     """Run the CodeGrade data ingestion pipeline."""
     client = codegrade.login_from_cli()
     cg_data = API_Data(client)
-    cg_data.extract_all_assignments(cg_data.assignments)
-    cg_data.extract_csv(cg_data.assignments)
-    cg_data.delete_created_folder()
+    cg_data.course = cg_data.get_course(client)
+    cg_data.assignments = cg_data.get_assignments()
+    cg_data.extract_all_assignments(cg_data.assignments)        #download all submissions of every assignment witht the lockdate past
+    cg_data.extract_csv(cg_data.assignments)                    #extrace the csv file witht he columns [ID,Username,Name,Grade]                       
+    cg_data.delete_created_folder()                             #delete the created folder
+    #print(cg_data.get_course_info())
+    #print(cg_data.get_rubric_grades_dict(cg_data.assignments))
 
 
 if __name__ == "__main__":
