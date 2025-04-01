@@ -33,7 +33,7 @@ class TestAPIData(unittest.TestCase):
         self.api_data = API_Data(self.mock_client)
 
     def create_mock_assignment(self, assignment_id, name, lock_date=None, deadline=None, max_grade=100):
-        """Helper function create a mock assignment."""
+        """Create a mock assignment."""
         assignment = MagicMock()
         assignment.id = assignment_id
         assignment.name = name
@@ -43,7 +43,7 @@ class TestAPIData(unittest.TestCase):
         return assignment
 
     def create_mock_submission(self, submission_id, user_id, user_name, user_username, grade, group_name=None):
-        """Helper function that creates a mock submission with all needed attributes."""
+        """Create a mock submission with all needed attributes."""
         submission = MagicMock()
         submission.id = submission_id
         submission.user = MagicMock()
@@ -57,7 +57,7 @@ class TestAPIData(unittest.TestCase):
         return submission
 
     def create_mock_rubric(self, rubric_items):
-        """Helper function create a rubric with given params."""
+        """Create a rubric with given params."""
         rubric = MagicMock()
         rubric.selected = []
         rubric.rubrics = []
