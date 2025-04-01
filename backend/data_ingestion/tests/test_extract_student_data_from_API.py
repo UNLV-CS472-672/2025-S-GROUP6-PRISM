@@ -25,15 +25,15 @@ import httpx
 
 
 class TestAPIData(unittest.TestCase):
-    
     """Test class for 'extract student data from API'."""
+
     def setUp(self):
         """Set up client and class object."""
         self.mock_client = MagicMock()
         self.api_data = API_Data(self.mock_client)
 
     def create_mock_assignment(self, assignment_id, name, lock_date=None, deadline=None, max_grade=100):
-        """Helper function for creating an assignment."""
+        """Helper function create a mock assignment."""
         assignment = MagicMock()
         assignment.id = assignment_id
         assignment.name = name
@@ -43,7 +43,7 @@ class TestAPIData(unittest.TestCase):
         return assignment
 
     def create_mock_submission(self, submission_id, user_id, user_name, user_username, grade, group_name=None):
-        """Helper function for creating submission."""
+        """Helper function that creates a mock submission with all needed attributes."""
         submission = MagicMock()
         submission.id = submission_id
         submission.user = MagicMock()
@@ -57,7 +57,7 @@ class TestAPIData(unittest.TestCase):
         return submission
 
     def create_mock_rubric(self, rubric_items):
-        """Helper function for a mock rubric."""
+        """Helper function create a rubric with given params."""
         rubric = MagicMock()
         rubric.selected = []
         rubric.rubrics = []
@@ -125,7 +125,7 @@ class TestAPIData(unittest.TestCase):
         submissions = self.api_data.get_all_submissions(assignment)
         self.assertEqual(submissions, ["submission1", "submission2"])
         self.mock_client.assignment.get_all_submissions.assert_called_once_with(assignment_id='1234')
-    
+
     def test_get_all_submissions_fail(self):
         """We get an exception from api call get_all_submissions."""
         assignment = self.create_mock_assignment("1234", "Test Assignment")
@@ -247,4 +247,3 @@ class TestAPIData(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-    
