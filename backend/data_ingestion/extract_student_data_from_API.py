@@ -371,14 +371,14 @@ def main():
     cg_data = API_Data(client)
     cg_data.course = cg_data.get_course(client)
     cg_data.assignments = cg_data.get_assignments()
-    cg_data.extract_all_assignments(cg_data.assignments)        
-    #download all submissions of every assignment witht the lockdate past
+    cg_data.extract_all_assignments(cg_data.assignments)
+    # download all submissions of every assignment witht the lockdate past
     cg_data.extract_csv(cg_data.assignments)
-    #extrace the csv file witht he columns [ID,Username,Name,Grade]
+    # extrace the csv file witht he columns [ID,Username,Name,Grade]
     cg_data.delete_created_folder()
-    #delete the created folder
-    #print(cg_data.get_course_info())
-    #print(cg_data.get_rubric_grades_dict(cg_data.assignments))
+    # delete the created folder
+    # print(cg_data.get_course_info())
+    # print(cg_data.get_rubric_grades_dict(cg_data.assignments))
 
 
 if __name__ == "__main__":
