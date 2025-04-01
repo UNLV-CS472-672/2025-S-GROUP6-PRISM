@@ -193,7 +193,8 @@ class TestAPIData(unittest.TestCase):
     @patch('data_ingestion.extract_student_data_from_API.os')
     @patch('data_ingestion.extract_student_data_from_API.zipfile')
     @patch('data_ingestion.extract_student_data_from_API.io')
-    def test_download_submission_success_individual(self, mock_io, mock_zipfile, mock_os, mock_codegrade):
+    @patch('data_ingestion.extract_student_data_from_API.shutil')
+    def test_download_submission_success_individual(self, mock_shutil, mock_io, mock_zipfile, mock_os, mock_codegrade):
         """Test that we can doanload a submission and that output file was created."""
         mock_submission = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
         mock_zipinfo = MagicMock(name="test.zip")
@@ -211,6 +212,8 @@ class TestAPIData(unittest.TestCase):
         mock_io.BytesIO.return_value = MagicMock()
         mock_os.makedirs.return_value = None
         mock_os.path.exists.return_value = False
+        mock_shutil = MagicMock()
+        mock_shutil.copyfileobj.return_value = None
         with patch('builtins.open', mock_target_file):
             self.api_data.download_submission(mock_submission, "output_dir")
         mock_os.makedirs.assert_called_once_with(os.path.join("output_dir", "User One"), exist_ok=True)
