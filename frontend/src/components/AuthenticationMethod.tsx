@@ -7,6 +7,7 @@ export function SignInButton() {
 	return (
 		<Button
 			variant="contained"
+			data-testid="google-sign-in"
 			onClick={() =>
 				signIn("google", { callbackUrl: "http://localhost:3000/callback" })
 			}
