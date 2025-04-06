@@ -257,7 +257,7 @@ class TestAPIData(unittest.TestCase):
     @patch('data_ingestion.extract_student_data_from_API.API_Data.make_zip_archive')
     @patch('data_ingestion.extract_student_data_from_API.API_Data.download_submission')
     def test_extract_all_assignments_success(self, mock_down, mock_zip, mock_json_file, mock_datetime, mock_json, mock_os):
-        # Mock course and assignments
+        """Mock course and assignments."""
         mock_course = MagicMock()
         mock_course.id = "course_id"
         mock_course.name = "course_name"
@@ -287,13 +287,13 @@ class TestAPIData(unittest.TestCase):
         self.mock_client.assignment.get_all_submissions.return_value = mock_submissions
         mock_down.return_value = None
         self.api_data.extract_all_assignments(mock_assignments)
-        
+
         self.assertEqual(self.api_data.download_submission.call_count, 4)  # 2 each assignment
         mock_json_file.assert_called()
         mock_zip.assert_called()
 
     def test_extract_all_assignments_no_assignments(self):
-        # Test with no assignments given.
+        """Test with no assignments given."""
         mock_course = MagicMock()
         mock_course.id = "course_id"
         mock_course.name = "course_name"
@@ -301,12 +301,10 @@ class TestAPIData(unittest.TestCase):
         self.api_data.course = mock_course
         mock_no_assignments = []
         self.api_data.extract_all_assignments(mock_no_assignments)
-        
-        # Optionally assert that no further processing happens
 
     @patch('data_ingestion.extract_student_data_from_API.os')
     def test_extract_all_assignments_mkdir_failure(self, mock_os):
-        # Test when mkdir fails
+        """Test when mkdir fails."""
         mock_course = MagicMock()
         mock_course.id = "test_course_id"
         mock_course.name = "Test Course Name"
