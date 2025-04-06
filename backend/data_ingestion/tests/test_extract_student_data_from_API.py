@@ -22,6 +22,7 @@ import io
 import os
 import zipfile
 import httpx
+import datetime
 
 
 class TestAPIData(unittest.TestCase):
@@ -30,6 +31,8 @@ class TestAPIData(unittest.TestCase):
     def setUp(self):
         """Set up client and class object."""
         self.mock_client = MagicMock()
+        #assignment = MagicMock()
+        #self.mock_client.assignment = assignment
         self.api_data = API_Data(self.mock_client)
 
     def create_mock_assignment(self, assignment_id, name, lock_date=None, deadline=None, max_grade=100):
@@ -246,6 +249,85 @@ class TestAPIData(unittest.TestCase):
         self.mock_client.file.download.side_effect = httpx.ReadError("Read error")
         with self.assertRaises(httpx.ReadError):
             self.api_data.download_submission(mock_submission, "output_dir")
+
+    @patch('data_ingestion.extract_student_data_from_API.os')
+    @patch('data_ingestion.extract_student_data_from_API.json')
+    @patch('data_ingestion.extract_student_data_from_API.datetime')
+    @patch('data_ingestion.extract_student_data_from_API.API_Data.get_json_file')
+    @patch('data_ingestion.extract_student_data_from_API.API_Data.make_zip_archive')
+    @patch('data_ingestion.extract_student_data_from_API.API_Data.download_submission')
+    def test_extract_all_assignments_success(self,mock_down,mock_zip,mock_json_file,mock_datetime,mock_json,mock_os):
+        # Mock course and assignments
+        mock_course = MagicMock()
+        mock_course.id = "course_id"
+        mock_course.name = "course_name"
+        mock_course.created_at = "created_date"
+        self.api_data.course = mock_course
+        mock_now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = mock_now
+        mock_lock = datetime.datetime(
+                2024,
+                5,
+                24,
+                0,
+                0,
+                0,
+            )
+        mock_datetime.datetime.return_value = mock_lock
+        self.assertGreater(mock_now,mock_lock)
+        mock_assignment1 = self.create_mock_assignment(assignment_id=int(1001), name="Assignment One", lock_date=mock_lock)
+        mock_assignment2 = self.create_mock_assignment(assignment_id=int(1002), name="Assignment Two", lock_date=mock_lock)
+        mock_assignments = [mock_assignment1, mock_assignment2]
+        mock_submission1 = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
+        mock_submission2 = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
+        mock_submissions = [mock_submission1,mock_submission2]
+        # Mock os and json behavior
+        mock_os.path.join.side_effect = lambda *args: os.path.join(*args)
+        mock_os.makedirs.return_value = None
+        mock_json.dump.return_value = None
+        #mock_get_json.return_value = None
+        #mock_zip.return_value = None
+        self.mock_client.assignment.get_all_submissions.return_value = mock_submissions
+        mock_down.return_value = None
+        #self.api_data.download_submission.return_value = None
+        self.api_data.extract_all_assignments(mock_assignments)
+        self.assertEqual(self.api_data.download_submission.call_count,4) # 2 each assignment
+
+    def test_extract_all_assignments_no_assignments(self):
+        mock_course = MagicMock()
+        mock_course.id = "course_id"
+        mock_course.name = "course_name"
+        mock_course.created_at = "created_date"
+        self.api_data.course = mock_course
+        mock_no_assignments = []
+        self.api_data.extract_all_assignments(mock_no_assignments)
+        
+        # Optionally assert that no further processing happens
+
+    @patch('data_ingestion.extract_student_data_from_API.os')
+    def test_extract_all_assignments_mkdir_failure(self, mock_os):
+        mock_course = MagicMock()
+        mock_course.id = "test_course_id"
+        mock_course.name = "Test Course Name"
+        mock_course.created_at = "created_date"
+        self.api_data.course = mock_course
+        mock_lock = datetime.datetime(
+                2024,
+                5,
+                24,
+                0,
+                0,
+                0,
+            )
+        mock_assignment = self.create_mock_assignment("assign1", "Assignment One",mock_lock)
+        mock_assignments = [mock_assignment]
+        mock_os.path.join.side_effect = lambda *args: os.path.join(*args)
+        mock_os.makedirs.side_effect = OSError("Failed to create directory")
+
+        with self.assertRaises(OSError):
+            self.api_data.extract_all_assignments(mock_assignments)
+
+        mock_os.makedirs.assert_called_once()
 
 
 if __name__ == '__main__':
