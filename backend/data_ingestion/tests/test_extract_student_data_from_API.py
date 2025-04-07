@@ -15,10 +15,12 @@ Verifys:
         - extract_csv(),
         - delete_created_folder()
 """
+
 import unittest
 from unittest.mock import MagicMock, patch, mock_open
 from data_ingestion.extract_student_data_from_API import API_Data
 import io
+from io import StringIO
 import os
 import zipfile
 import httpx
@@ -35,7 +37,9 @@ class TestAPIData(unittest.TestCase):
         # self.mock_client.assignment = assignment
         self.api_data = API_Data(self.mock_client)
 
-    def create_mock_assignment(self, assignment_id, name, lock_date=None, deadline=None, max_grade=100):
+    def create_mock_assignment(
+        self, assignment_id, name, lock_date=None, deadline=None, max_grade=100
+    ):
         """Create a mock assignment."""
         assignment = MagicMock()
         assignment.id = assignment_id
@@ -45,7 +49,9 @@ class TestAPIData(unittest.TestCase):
         assignment.max_grade = max_grade
         return assignment
 
-    def create_mock_submission(self, submission_id, user_id, user_name, user_username, grade, group_name=None):
+    def create_mock_submission(
+        self, submission_id, user_id, user_name, user_username, grade, group_name=None
+    ):
         """Create a mock submission with all needed attributes."""
         submission = MagicMock()
         submission.id = submission_id
@@ -66,16 +72,16 @@ class TestAPIData(unittest.TestCase):
         rubric.rubrics = []
         for item in rubric_items:
             selected_item = MagicMock()
-            selected_item.achieved_points = item['achieved_points']
-            selected_item.points = item['points']
-            selected_item.multiplier = item['multiplier']
+            selected_item.achieved_points = item["achieved_points"]
+            selected_item.points = item["points"]
+            selected_item.multiplier = item["multiplier"]
             rubric_item = MagicMock()
-            rubric_item.header = item['header']
+            rubric_item.header = item["header"]
             rubric.selected.append(selected_item)
             rubric.rubrics.append(rubric_item)
         return rubric
 
-# start testing
+    # start testing
     def test_handle_maybe(self):
         """Test that we can extract data from input."""
         maybe_mock = MagicMock()
@@ -83,7 +89,7 @@ class TestAPIData(unittest.TestCase):
         result = self.api_data.handle_maybe(maybe_mock)
         self.assertEqual(result, "extracted value")
 
-    @patch('data_ingestion.extract_student_data_from_API.os')
+    @patch("data_ingestion.extract_student_data_from_API.os")
     def test_mkdir_success(self, mock_os):
         """Test mkdirs returns true and only called once."""
         mock_os.makedirs.return_value = None
@@ -91,8 +97,8 @@ class TestAPIData(unittest.TestCase):
         self.assertTrue(result)
         mock_os.makedirs.assert_called_once_with("test_dir", exist_ok=True)
 
-    @patch('data_ingestion.extract_student_data_from_API.os')
-    @patch('sys.stderr', new_callable=io.StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.os")
+    @patch("sys.stderr", new_callable=io.StringIO)
     def test_mkdir_failure(self, mock_stderr, mock_os):
         """Exception handling and returns an error."""
         mock_os.makedirs.side_effect = Exception("mkdir failed")
@@ -117,33 +123,49 @@ class TestAPIData(unittest.TestCase):
         mock_course.created_at = "created_date"
         self.api_data.course = mock_course
         course_info = self.api_data.get_course_info()
-        expected_info = {"Course-ID": "course_id", "Name": "course_name", "Created-Date": "created_date"}
+        expected_info = {
+            "Course-ID": "course_id",
+            "Name": "course_name",
+            "Created-Date": "created_date",
+        }
         self.assertEqual(course_info, expected_info)
 
     def test_get_all_submissions_success(self):
         """Test for retrieving all submissions from an assignment."""
         assignment = self.create_mock_assignment("1234", "Test Assignment")
         self.mock_client.assignment = assignment
-        self.mock_client.assignment.get_all_submissions.return_value = ["submission1", "submission2"]
+        self.mock_client.assignment.get_all_submissions.return_value = [
+            "submission1",
+            "submission2",
+        ]
         submissions = self.api_data.get_all_submissions(assignment)
         self.assertEqual(submissions, ["submission1", "submission2"])
-        self.mock_client.assignment.get_all_submissions.assert_called_once_with(assignment_id='1234')
+        self.mock_client.assignment.get_all_submissions.assert_called_once_with(
+            assignment_id="1234"
+        )
 
     def test_get_all_submissions_fail(self):
         """We get an exception from api call get_all_submissions."""
         assignment = self.create_mock_assignment("1234", "Test Assignment")
         self.mock_client.assignment = assignment
-        self.mock_client.assignment.get_all_submissions.side_effect = Exception("invalid Assignment input")
+        self.mock_client.assignment.get_all_submissions.side_effect = Exception(
+            "invalid Assignment input"
+        )
         result = self.api_data.get_all_submissions(assignment)
         self.assertFalse(result)
 
     def test_get_all_graders(self):
         """Test to get all graders from assignment."""
         assignment = self.create_mock_assignment("assignment1", "Test Assignment")
-        self.mock_client.assignment.get_all_graders.return_value = ["grader1", "grader2"]
+        self.mock_client.assignment.get_all_graders.return_value = [
+            "grader1",
+            "grader2",
+        ]
         graders = self.api_data.get_all_graders(assignment)
         self.assertEqual(graders, ["grader1", "grader2"])
-        self.mock_client.assignment.get_all_graders.assert_called_once_with(assignment_id="assignment1")
+        self.mock_client.assignment.get_all_graders.assert_called_once_with(
+            assignment_id="assignment1"
+        )
 
     def test_get_rubric(self):
         """Test rubric from api call."""
@@ -160,21 +182,27 @@ class TestAPIData(unittest.TestCase):
         self.mock_client.submission.get_rubric_result.return_value = mock_grade_data
         grade = self.api_data.get_rubric_grade("sub123")
         self.assertEqual(grade, mock_grade_data)
-        self.mock_client.submission.get_rubric_result.assert_called_with(submission_id="sub123")
+        self.mock_client.submission.get_rubric_result.assert_called_with(
+            submission_id="sub123"
+        )
 
     def test_get_rubric_grade_none(self):
         """Test the error handleing for a submission wo a rubric."""
-        self.mock_client.submission.get_rubric_result.side_effect = Exception("Rubric not found")
+        self.mock_client.submission.get_rubric_result.side_effect = Exception(
+            "Rubric not found"
+        )
         grade = self.api_data.get_rubric_grade("sub123")
         self.assertIsNone(grade)
-        self.mock_client.submission.get_rubric_result.assert_called_with(submission_id="sub123")
+        self.mock_client.submission.get_rubric_result.assert_called_with(
+            submission_id="sub123"
+        )
 
-    @patch('data_ingestion.extract_student_data_from_API.os')
-    @patch('data_ingestion.extract_student_data_from_API.json')
+    @patch("data_ingestion.extract_student_data_from_API.os")
+    @patch("data_ingestion.extract_student_data_from_API.json")
     def test_get_json_file_success(self, mock_json, mock_os):
         """Test json is called and we create the output file .cg-info.json."""
         m = mock_open()
-        with patch('builtins.open', m):
+        with patch("builtins.open", m):
             mock_os.path.join.return_value = "test_path/.cg-info.json"
             mock_os.makedirs.return_value = None
             test_dict = {"key": "value"}
@@ -182,8 +210,8 @@ class TestAPIData(unittest.TestCase):
             mock_json.dump.assert_called()
             mock_os.makedirs.assert_called_once_with("test_path", exist_ok=True)
 
-    @patch('data_ingestion.extract_student_data_from_API.os')
-    @patch('data_ingestion.extract_student_data_from_API.json')
+    @patch("data_ingestion.extract_student_data_from_API.os")
+    @patch("data_ingestion.extract_student_data_from_API.json")
     def test_get_json_file_mkdir_failure(self, mock_json, mock_os):
         """Exception handling."""
         mock_os.makedirs.side_effect = Exception("mkdir failed")
@@ -192,14 +220,18 @@ class TestAPIData(unittest.TestCase):
         mock_os.makedirs.assert_called_once_with("test_path", exist_ok=True)
         mock_json.dump.assert_not_called()
 
-    @patch('data_ingestion.extract_student_data_from_API.codegrade')
-    @patch('data_ingestion.extract_student_data_from_API.os')
-    @patch('data_ingestion.extract_student_data_from_API.zipfile')
-    @patch('data_ingestion.extract_student_data_from_API.io')
-    @patch('data_ingestion.extract_student_data_from_API.shutil')
-    def test_download_submission_success_individual(self, mock_shutil, mock_io, mock_zipfile, mock_os, mock_codegrade):
+    @patch("data_ingestion.extract_student_data_from_API.codegrade")
+    @patch("data_ingestion.extract_student_data_from_API.os")
+    @patch("data_ingestion.extract_student_data_from_API.zipfile")
+    @patch("data_ingestion.extract_student_data_from_API.io")
+    @patch("data_ingestion.extract_student_data_from_API.shutil")
+    def test_download_submission_success_individual(
+        self, mock_shutil, mock_io, mock_zipfile, mock_os, mock_codegrade
+    ):
         """Test that we can doanload a submission and that output file was created."""
-        mock_submission = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
+        mock_submission = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1", 90
+        )
         mock_zipinfo = MagicMock(name="test.zip")
         mock_zipdata = b"mock zip data"
         self.mock_client.submission.get.return_value = mock_zipinfo
@@ -217,18 +249,24 @@ class TestAPIData(unittest.TestCase):
         mock_os.path.exists.return_value = False
         mock_shutil = MagicMock()
         mock_shutil.copyfileobj.return_value = None
-        with patch('builtins.open', mock_target_file):
+        with patch("builtins.open", mock_target_file):
             self.api_data.download_submission(mock_submission, "output_dir")
-        mock_os.makedirs.assert_called_once_with(os.path.join("output_dir", "User One"), exist_ok=True)
+        mock_os.makedirs.assert_called_once_with(
+            os.path.join("output_dir", "User One"), exist_ok=True
+        )
 
-    @patch('data_ingestion.extract_student_data_from_API.codegrade')
-    @patch('data_ingestion.extract_student_data_from_API.os')
-    @patch('data_ingestion.extract_student_data_from_API.zipfile')
-    @patch('data_ingestion.extract_student_data_from_API.io')
-    @patch('sys.stderr', new_callable=io.StringIO)
-    def test_download_submission_bad_zip(self, mock_stderr, mock_io, mock_zipfile, mock_os, mock_codegrade):
+    @patch("data_ingestion.extract_student_data_from_API.codegrade")
+    @patch("data_ingestion.extract_student_data_from_API.os")
+    @patch("data_ingestion.extract_student_data_from_API.zipfile")
+    @patch("data_ingestion.extract_student_data_from_API.io")
+    @patch("sys.stderr", new_callable=io.StringIO)
+    def test_download_submission_bad_zip(
+        self, mock_stderr, mock_io, mock_zipfile, mock_os, mock_codegrade
+    ):
         """Test that the zipfile spits an error."""
-        mock_submission = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
+        mock_submission = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1", 90
+        )
         mock_zipinfo = MagicMock(name="test.zip")
         mock_zipdata = b"mock zip data"
         self.mock_client.submission.get.return_value = mock_zipinfo
@@ -245,18 +283,22 @@ class TestAPIData(unittest.TestCase):
 
     def test_download_submission_httpx_read_error_retry(self):
         """Test our exception case works."""
-        mock_submission = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
+        mock_submission = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1", 90
+        )
         self.mock_client.file.download.side_effect = httpx.ReadError("Read error")
         with self.assertRaises(httpx.ReadError):
             self.api_data.download_submission(mock_submission, "output_dir")
 
-    @patch('data_ingestion.extract_student_data_from_API.os')
-    @patch('data_ingestion.extract_student_data_from_API.json')
-    @patch('data_ingestion.extract_student_data_from_API.datetime')
-    @patch('data_ingestion.extract_student_data_from_API.API_Data.get_json_file')
-    @patch('data_ingestion.extract_student_data_from_API.API_Data.make_zip_archive')
-    @patch('data_ingestion.extract_student_data_from_API.API_Data.download_submission')
-    def test_extract_all_assignments_success(self, mock_down, mock_zip, mock_json_file, mock_datetime, mock_json, mock_os):
+    @patch("data_ingestion.extract_student_data_from_API.os")
+    @patch("data_ingestion.extract_student_data_from_API.json")
+    @patch("data_ingestion.extract_student_data_from_API.datetime")
+    @patch("data_ingestion.extract_student_data_from_API.API_Data.get_json_file")
+    @patch("data_ingestion.extract_student_data_from_API.API_Data.make_zip_archive")
+    @patch("data_ingestion.extract_student_data_from_API.API_Data.download_submission")
+    def test_extract_all_assignments_success(
+        self, mock_down, mock_zip, mock_json_file, mock_datetime, mock_json, mock_os
+    ):
         """Mock course and assignments."""
         mock_course = MagicMock()
         mock_course.id = "course_id"
@@ -265,20 +307,22 @@ class TestAPIData(unittest.TestCase):
         self.api_data.course = mock_course
         mock_now = datetime.datetime.now()
         mock_datetime.datetime.now.return_value = mock_now
-        mock_lock = datetime.datetime(
-            2024,
-            5,
-            24,
-            0,
-            0,
-            0)
+        mock_lock = datetime.datetime(2024, 5, 24, 0, 0, 0)
         mock_datetime.datetime.return_value = mock_lock
         self.assertGreater(mock_now, mock_lock)
-        mock_assignment1 = self.create_mock_assignment(assignment_id=int(1001), name="Assignment One", lock_date=mock_lock)
-        mock_assignment2 = self.create_mock_assignment(assignment_id=int(1002), name="Assignment Two", lock_date=mock_lock)
+        mock_assignment1 = self.create_mock_assignment(
+            assignment_id=int(1001), name="Assignment One", lock_date=mock_lock
+        )
+        mock_assignment2 = self.create_mock_assignment(
+            assignment_id=int(1002), name="Assignment Two", lock_date=mock_lock
+        )
         mock_assignments = [mock_assignment1, mock_assignment2]
-        mock_submission1 = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
-        mock_submission2 = self.create_mock_submission("sub1", "user1", "User One", "user1", 90)
+        mock_submission1 = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1", 90
+        )
+        mock_submission2 = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1", 90
+        )
         mock_submissions = [mock_submission1, mock_submission2]
         # Mock os and json behavior
         mock_os.path.join.side_effect = lambda *args: os.path.join(*args)
@@ -288,7 +332,9 @@ class TestAPIData(unittest.TestCase):
         mock_down.return_value = None
         self.api_data.extract_all_assignments(mock_assignments)
 
-        self.assertEqual(self.api_data.download_submission.call_count, 4)  # 2 each assignment
+        self.assertEqual(
+            self.api_data.download_submission.call_count, 4
+        )  # 2 each assignment
         mock_json_file.assert_called()
         mock_zip.assert_called()
 
@@ -302,7 +348,7 @@ class TestAPIData(unittest.TestCase):
         mock_no_assignments = []
         self.api_data.extract_all_assignments(mock_no_assignments)
 
-    @patch('data_ingestion.extract_student_data_from_API.os')
+    @patch("data_ingestion.extract_student_data_from_API.os")
     def test_extract_all_assignments_mkdir_failure(self, mock_os):
         """Test when mkdir fails."""
         mock_course = MagicMock()
@@ -310,14 +356,10 @@ class TestAPIData(unittest.TestCase):
         mock_course.name = "Test Course Name"
         mock_course.created_at = "created_date"
         self.api_data.course = mock_course
-        mock_lock = datetime.datetime(
-            2024,
-            5,
-            24,
-            0,
-            0,
-            0)
-        mock_assignment = self.create_mock_assignment("assign1", "Assignment One", mock_lock)
+        mock_lock = datetime.datetime(2024, 5, 24, 0, 0, 0)
+        mock_assignment = self.create_mock_assignment(
+            "assign1", "Assignment One", mock_lock
+        )
         mock_assignments = [mock_assignment]
         mock_os.path.join.side_effect = lambda *args: os.path.join(*args)
         mock_os.makedirs.side_effect = OSError("Failed to create directory")
@@ -327,6 +369,112 @@ class TestAPIData(unittest.TestCase):
 
         mock_os.makedirs.assert_called_once()
 
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("data_ingestion.extract_student_data_from_API.datetime")
+    def test_extract_csv_success(self, mock_datetime, mock_file, stdout):
+        """Test the extract_csv method."""
+        mock_course = MagicMock()
+        mock_course.id = "course_id"
+        mock_course.name = "Success_Course"
+        mock_course.created_at = "created_date"
+        self.api_data.course = mock_course
+        mock_lock = datetime.datetime(2024, 5, 24, 0, 0, 0)
+        assignment1 = self.create_mock_assignment("1", "Test Assignment 1", mock_lock)
+        assignment2 = self.create_mock_assignment("2", "Test Assignment 2", mock_lock)
+        assignments = [assignment1, assignment2]
+        mock_submission1 = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1dn", 66
+        )
+        mock_submission2 = self.create_mock_submission(
+            "sub1", "user2", "User Two", "user2dn", 66
+        )
+        mock_submissions = [mock_submission1, mock_submission2]
+        self.mock_client.assignment.get_all_submissions.return_value = mock_submissions
+        mock_datetime.datetime.return_value = mock_lock
+        mock_now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = mock_now
+        # Get the time now to check if mock lock date >(after) mock now; no it should not be
 
-if __name__ == '__main__':
+        self.api_data.get_output_dir = MagicMock(
+            return_value="output/test_course_assignment_1"
+        )
+        self.api_data.get_feedback = MagicMock()
+        self.api_data.get_grade = MagicMock(return_value=66)
+
+        self.api_data.extract_csv(assignments)
+
+        mock_file.assert_called_with(
+            "output/test_course_assignment_1.csv", "w", newline=""
+        )
+        self.assertIn(
+            "SUCCESS! CSV file 'output/test_course_assignment_1.csv' created.",
+            stdout.getvalue().strip(),
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.datetime")
+    def test_extract_csv_fail_submissions(self, mock_datetime, stdout):
+        """Test the fail cases of extract_csv: no submissions case."""
+        # Mock now = datetime.datetime.()
+        mock_now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = mock_now
+
+        # Mock course
+        mock_course = MagicMock()
+        mock_course.id = "0001"
+        mock_course.name = "Failure_Course"
+        mock_course.created_at = "created_date"
+        self.api_data.course = mock_course
+        mock_lock = datetime.datetime(2024, 5, 24, 0, 0, 0)
+        assignment1 = self.create_mock_assignment("1", "Test Assignment 1", mock_lock)
+        assignment2 = self.create_mock_assignment("2", "Test Assignment 2", mock_lock)
+        assignments = [assignment1, assignment2]
+        mock_submissions = []
+        self.mock_client.assignment.get_all_submissions.return_value = mock_submissions
+
+        self.api_data.extract_csv(assignments)
+
+        self.assertIn("No submissions for Test Assignment 1", stdout.getvalue().strip())
+        self.assertIn("No submissions for Test Assignment 2", stdout.getvalue().strip())
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.datetime")
+    def test_extract_csv_fail_lockdate(self, mock_datetime, stdout):
+        """Test failure of extract_csv for lockdate has not past yet."""
+        # Mock now = datetime.datetime.()
+        mock_now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = mock_now
+
+        # Mock course
+        mock_course = MagicMock()
+        mock_course.id = "0001"
+        mock_course.name = "Failure_Course_Lockdate"
+        mock_course.created_at = "created_date"
+        self.api_data.course = mock_course
+        # make lockdate in the future
+        mock_lock = datetime.datetime(2026, 5, 24, 0, 0, 0)
+        mock_datetime.datetime.return_value = mock_lock
+        assignment1 = self.create_mock_assignment("1", "Test Assignment 1", mock_lock)
+        assignment2 = self.create_mock_assignment("2", "Test Assignment 2", mock_lock)
+        assignments = [assignment1, assignment2]
+        mock_submission1 = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1dn", 66
+        )
+        mock_submissions = [mock_submission1]
+        self.mock_client.assignment.get_all_submissions.return_value = mock_submissions
+
+        self.api_data.extract_csv(assignments)
+
+        self.assertIn(
+            f"Lock date ({mock_lock}) not passed yet for Test Assignment 1",
+            stdout.getvalue().strip(),
+        )
+        self.assertIn(
+            f"Lock date ({mock_lock}) not passed yet for Test Assignment 2",
+            stdout.getvalue().strip(),
+        )
+
+
+if __name__ == "__main__":
     unittest.main()
