@@ -9,11 +9,9 @@ codegrade servers.
 Verifys:
     - most getter funcitons
     - good and bad zip files
-    - 1 big function (download submission, 3 more needed)
-        - Need to test:
-        - extract_all_assignments(),
-        - extract_csv(),
-        - delete_created_folder()
+    - extract_all_assignments()
+    - extract_csv()
+    - delete_created_folder()
 """
 
 import unittest
@@ -472,6 +470,54 @@ class TestAPIData(unittest.TestCase):
         )
         self.assertIn(
             f"Lock date ({mock_lock}) not passed yet for Test Assignment 2",
+            stdout.getvalue().strip(),
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.shutil")
+    def test_delete_created_folder_success(self, mock_shutil, stdout):
+        """Test the deletion of a folder."""
+        self.api_data.create_folder_path = "output/cg_data"
+        mock_shutil.rmtree.return_value = None
+        self.api_data.delete_created_folder()
+        self.assertEqual(
+            "Directory 'output/cg_data' deleted successfully.",
+            stdout.getvalue().strip(),
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.shutil")
+    def test_delete_created_folder_failure_file_not_found(self, mock_shutil, stdout):
+        """Test the file not found error."""
+        self.api_data.create_folder_path = "output/cg_data"
+        mock_shutil.rmtree.side_effect = FileNotFoundError()
+        self.api_data.delete_created_folder()
+        self.assertIn(
+            "Directory 'output/cg_data' not found.",
+            stdout.getvalue().strip(),
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.shutil")
+    def test_delete_created_folder_failure_permission_error(self, mock_shutil, stdout):
+        """Test the file not permission error."""
+        self.api_data.create_folder_path = "output/cg_data"
+        mock_shutil.rmtree.side_effect = PermissionError()
+        self.api_data.delete_created_folder()
+        self.assertIn(
+            "Permission denied to delete 'output/cg_data'.",
+            stdout.getvalue().strip(),
+        )
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.shutil")
+    def test_delete_created_folder_failure_os_error(self, mock_shutil, stdout):
+        """Test the file output error."""
+        self.api_data.create_folder_path = "output/cg_data"
+        mock_shutil.rmtree.side_effect = OSError()
+        self.api_data.delete_created_folder()
+        self.assertIn(
+            "Error deleting directory:",
             stdout.getvalue().strip(),
         )
 
