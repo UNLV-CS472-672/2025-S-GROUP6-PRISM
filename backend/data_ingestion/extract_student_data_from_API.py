@@ -14,10 +14,9 @@ import json
 import csv
 import shutil
 import datetime
-
+from dotenv import load_dotenv
 from httpx import ReadError
 import codegrade
-from codegrade.utils import select_from_list
 
 
 class API_Data:
@@ -51,8 +50,10 @@ class API_Data:
         return True
 
     def get_course(self, client):
-        """Prompt user to select a course using the client."""
+        """Return the our development course."""
         try:
+            """
+            Prompt the user for a course.
             course = self.handle_maybe(
                 select_from_list(
                     "Select a course",
@@ -60,6 +61,10 @@ class API_Data:
                     lambda c: c.name,
                 )
             )
+            """
+            courses = client.course.get_all()
+            course = courses[0]
+            # will return the Development - Businge course
         except Exception as e:
             return e
 
@@ -367,7 +372,13 @@ class API_Data:
 
 def main():
     """Run the CodeGrade data ingestion pipeline."""
-    client = codegrade.login_from_cli()
+    load_dotenv()
+    client = codegrade.login(
+        username=os.getenv("CG_USER"),
+        password=os.getenv("CG_PASS"),
+        tenant="University of Nevada, Las Vegas",
+    )
+
     cg_data = API_Data(client)
     cg_data.course = cg_data.get_course(client)
     cg_data.assignments = cg_data.get_assignments()
