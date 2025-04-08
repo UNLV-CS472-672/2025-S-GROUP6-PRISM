@@ -9,14 +9,14 @@ import os
 import sys
 import time
 import zipfile
+from zipfile import BadZipFile
 import json
 import csv
 import shutil
 import datetime
-
-import httpx
+from dotenv import load_dotenv
+from httpx import ReadError
 import codegrade
-from codegrade.utils import select_from_list
 
 
 class API_Data:
@@ -26,8 +26,8 @@ class API_Data:
         """Initialize the API_Data instance with CodeGrade client."""
         self.client = client
         self.course_name = ""
-        self.course = self.get_course(client)
-        self.assignments = self.get_assignments()
+        self.course = None
+        self.assignments = None
         self.create_folder_path = ""
         self.course_info = {}
         self.all_assignments = []
@@ -50,8 +50,10 @@ class API_Data:
         return True
 
     def get_course(self, client):
-        """Prompt user to select a course using the client."""
+        """Return the our development course."""
         try:
+            """
+            Prompt the user for a course.
             course = self.handle_maybe(
                 select_from_list(
                     "Select a course",
@@ -59,6 +61,10 @@ class API_Data:
                     lambda c: c.name,
                 )
             )
+            """
+            courses = client.course.get_all()
+            course = courses[0]
+            # will return the Development - Businge course
         except Exception as e:
             return e
 
@@ -186,7 +192,7 @@ class API_Data:
                 type="zip",
             )
             zipdata = self.client.file.download(filename=zipinfo.name)
-        except httpx.ReadError:
+        except ReadError:
             if not retries:
                 raise
             time.sleep(1)
@@ -212,7 +218,7 @@ class API_Data:
                         os.path.join(student_dir, filename), "wb"
                     ) as target:
                         shutil.copyfileobj(source, target)
-        except zipfile.BadZipFile:
+        except BadZipFile:
             print("Invalid zip file", file=sys.stderr)
 
     def get_output_dir(self, course_name, assignment):
@@ -366,11 +372,24 @@ class API_Data:
 
 def main():
     """Run the CodeGrade data ingestion pipeline."""
-    client = codegrade.login_from_cli()
+    load_dotenv()
+    client = codegrade.login(
+        username=os.getenv("CG_USER"),
+        password=os.getenv("CG_PASS"),
+        tenant="University of Nevada, Las Vegas",
+    )
+
     cg_data = API_Data(client)
+    cg_data.course = cg_data.get_course(client)
+    cg_data.assignments = cg_data.get_assignments()
     cg_data.extract_all_assignments(cg_data.assignments)
+    # download all submissions of every assignment witht the lockdate past
     cg_data.extract_csv(cg_data.assignments)
+    # extrace the csv file witht he columns [ID,Username,Name,Grade]
     cg_data.delete_created_folder()
+    # delete the created folder
+    # print(cg_data.get_course_info())
+    # print(cg_data.get_rubric_grades_dict(cg_data.assignments))
 
 
 if __name__ == "__main__":
