@@ -31,22 +31,6 @@ const staticLinks = [
   { label: "Student Comparison", href: "/student_comparison" },
 ];
 
-// A component to wrap a Link component in Next.js to forward refs to an <a> element
-// HTMLAnchorElement tells TypeScript that the ref is for an <a>
-const LinkListItem = forwardRef<HTMLAnchorElement, { href: string; children: React.ReactNode }>(
-    ({ href, children, ...props }, ref) => (
-        // passHref passes href to <a> and legacyBehavior is used to manually write the <a> element
-      <Link href={href} passHref legacyBehavior>
-        {/* ref={ref} forwards things */}
-        <a ref={ref} {...props}>
-          {children}
-        </a>
-      </Link>
-    )
-  );
-// Set friendly name for the component
-LinkListItem.displayName = "LinkListItem";
-
 const HeaderBar = ({ title }: { title: string }) => {
   const [open, setOpen] = useState(false);
 
@@ -97,7 +81,7 @@ const HeaderBar = ({ title }: { title: string }) => {
             subheader={<ListSubheader component="div">Navigation</ListSubheader>}
           >
             {staticLinks.map((link) => (
-                <ListItemButton key={link.href} component={LinkListItem} href={link.href}>
+                <ListItemButton key={link.href} component={Link as React.ElementType} href={link.href}>
                     <ListItemText primary={link.label} />
                 </ListItemButton>
             ))}
