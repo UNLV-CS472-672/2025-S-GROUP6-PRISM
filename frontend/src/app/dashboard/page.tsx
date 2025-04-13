@@ -8,8 +8,10 @@
 // this is from stevens pr #39 - freatures/authentication
 
 "use client"
-import { Typography, Button, Box } from "@mui/material"
-import { SignOutButton } from "@/components/AuthenticationMethod"
+import { Container, Typography, Button } from "@mui/material"
+//import { StudentComparison } from "@/student_comparison" // student comparison
+//import { Alerts } from "@/app/alerts" // alerts
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@/types/index"
 import { useAuth } from "@/context/AuthContext"
@@ -38,19 +40,18 @@ function Dashboard() {
 	const { user } = useAuth()
 
 	return (
-		<Box>
-			<SignOutButton />
+		<Container>
 
 			{/* Main banner */}
 			<div>
-				<div className="Banner">
+				 <div className="Banner">
 					<Typography>Welcome {user?.first_name}</Typography>
 					<h1>Professor ID: {user?.professor_id}</h1>
 					<h1>User ID: {user?.pk}</h1>
 				</div>
 
 				{/* 2 buttons -> compare students, alerts */}
-				<div className="comapreButtons">
+				<div className="compareButtons">
 					<button onClick={() => router.push("/student_comparison")}>
 						Compare Students
 					</button>

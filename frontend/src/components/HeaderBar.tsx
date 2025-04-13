@@ -16,6 +16,9 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import HomeIcon from "@mui/icons-material/Home";
 import Link from "next/link";
+import { SignOutButton } from "@/components/AuthenticationMethod";
+import { useEffect } from "react";
+import { easyFetch } from "@/utils/fetchWrapper";
 import NextLink from "next/link";
 
 // Example data
@@ -23,6 +26,24 @@ const classSections = [
   { className: "Math 101", sections: ["Section A", "Section B"] },
   { className: "Physics 202", sections: ["Section C"] },
 ];
+
+// Real data
+interface ClassInstance {
+  id: number;
+  name: string;
+}
+
+interface Section {
+  id: number;
+  section_number: number;
+  class_instance: {
+    id: number;
+    name: string;
+  };
+  semester: {
+    name: string;
+  }
+}
 
 const staticLinks = [
   { label: "Account", href: "/account" },
@@ -33,6 +54,29 @@ const staticLinks = [
 
 const HeaderBar = ({ title }: { title: string }) => {
   const [open, setOpen] = useState(false);
+  const [courses, setCourses] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await easyFetch(
+          "http://localhost:8000/api/course/courseinstances/",
+          {
+            method: "get",
+          }
+        )
+  
+        const data = await response.json()
+  
+        if (response.ok) {
+          setCourses(data["results"])
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+      fetchCourses()
+  }, [])
 
   const toggleDrawer = (state: boolean) => () => {
     setOpen(state);
@@ -86,6 +130,7 @@ const HeaderBar = ({ title }: { title: string }) => {
                 </ListItemButton>
             ))}
           </List>
+          <SignOutButton />
         </Box>
       </Drawer>
     </>
