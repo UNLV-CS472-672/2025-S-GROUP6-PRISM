@@ -16,7 +16,7 @@ Verifys:
 
 import unittest
 from unittest.mock import MagicMock, patch, mock_open
-from data_ingestion.extract_student_data_from_API import API_Data
+from data_ingestion.extract_student_data_from_API import API_Data, main
 import io
 from io import StringIO
 import os
@@ -63,22 +63,6 @@ class TestAPIData(unittest.TestCase):
             submission.user.group.name = group_name
         return submission
 
-    def create_mock_rubric(self, rubric_items):
-        """Create a rubric with given params."""
-        rubric = MagicMock()
-        rubric.selected = []
-        rubric.rubrics = []
-        for item in rubric_items:
-            selected_item = MagicMock()
-            selected_item.achieved_points = item["achieved_points"]
-            selected_item.points = item["points"]
-            selected_item.multiplier = item["multiplier"]
-            rubric_item = MagicMock()
-            rubric_item.header = item["header"]
-            rubric.selected.append(selected_item)
-            rubric.rubrics.append(rubric_item)
-        return rubric
-
     # start testing
     def test_handle_maybe(self):
         """Test that we can extract data from input."""
@@ -104,6 +88,27 @@ class TestAPIData(unittest.TestCase):
         self.assertFalse(result)
         self.assertIn("mkdir failed", mock_stderr.getvalue())
 
+    def test_get_course(self):
+        """"""
+        mock_course1 = MagicMock()
+        mock_course1.id = "1"
+        mock_course1.name = "Dev course"
+        mock_course1.created_at = "may 12"
+        mock_course2 = MagicMock()
+        mock_course2.id = "2"
+        mock_course2.name = "cs 101"
+        mock_course2.created_at = "january 12"
+        mock_courses_list = [mock_course1,mock_course2]
+        self.mock_client.course.get_all.return_value = mock_courses_list
+        course = self.api_data.get_course(self.mock_client)
+        self.assertEqual(course,mock_course1)
+    
+    def test_get_course_fail(self):
+        """Test the fail case."""
+        self.mock_client.course.get_all.return_value = Exception()
+        result = self.api_data.get_course(self.mock_client)
+        self.assertIsInstance(result,Exception)
+
     def test_get_assignments(self):
         """Test return of all assignments."""
         mock_course = MagicMock()
@@ -127,6 +132,15 @@ class TestAPIData(unittest.TestCase):
             "Created-Date": "created_date",
         }
         self.assertEqual(course_info, expected_info)
+
+    def test_get_rubric_grades_dict_no_assignments(self):
+        """
+        Test case: No assignments are provided.
+        Expected behavior: Should return an empty dictionary.
+        """
+        mock_assignments = []
+        mock_result = self.api_data.get_rubric_grades_dict(mock_assignments)
+        self.assertEqual(mock_result, {})
 
     def test_get_all_submissions_success(self):
         """Test for retrieving all submissions from an assignment."""
@@ -173,6 +187,134 @@ class TestAPIData(unittest.TestCase):
         rubric = self.api_data.get_rubric(assignment)
         self.assertEqual(rubric, mock_rubric_data)
         self.mock_client.assignment.get_rubric.assert_called_with(assignment_id="1234")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_get_rubric_failure(self,stdout):
+        """"""
+        fail_string = "COULD NOT FIND RUBRIC"
+        self.mock_client.assignment.get_rubric.side_effect = Exception(fail_string)
+        assignment = self.create_mock_assignment("1", "Test Assignment")
+        result = self.api_data.get_rubric(assignment)
+        self.assertFalse(result)
+        self.assertIn(
+            fail_string,
+            stdout.getvalue().strip(),
+        )
+
+    def test_get_desc_success(self):
+        """"""
+        assignment = self.create_mock_assignment("1", "Test Assignment")
+        mock_desc = "Test Desciption"
+        self.mock_client.assignment.get_description.return_value = mock_desc
+        result = self.api_data.get_desc(assignment)
+        self.assertEqual(result, mock_desc)
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_get_desc_failure(self,stdout):
+        fail_string = "FAILED TO GET DESCRIPTION"
+        self.mock_client.assignment.get_description.side_effect = Exception(fail_string)
+        assignment = self.create_mock_assignment("1", "Test Assignment")
+        result = self.api_data.get_desc(assignment)
+        self.assertFalse(result)
+        self.assertIn(
+            fail_string,
+            stdout.getvalue().strip(),
+        )
+    
+    def test_get_time_frames(self):
+        """."""
+        assignment = self.create_mock_assignment("1", "Test Assignment")
+        mock_time_frame = "may - june"
+        self.mock_client.assignment.get_timeframes.return_value = mock_time_frame
+        result = self.api_data.get_time_frames(assignment)
+        self.assertEqual(result, mock_time_frame)
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_get_time_frames_failure(self,stdout):
+        """."""
+        assignment = self.create_mock_assignment("1", "Test Assignment")
+        fail_string = "FAILED TO GET DESCRIPTION"
+        self.mock_client.assignment.get_timeframes.side_effect = Exception(fail_string)
+        result = self.api_data.get_time_frames(assignment)
+        self.assertFalse(result)
+        self.assertIn(
+            fail_string,
+            stdout.getvalue().strip(),
+        )
+
+    def test_get_feedback(self):
+        """."""
+        assignment = self.create_mock_assignment("1", "Test Assignment")
+        mock_time_frame = "feedback 1"
+        self.mock_client.assignment.get_all_feedback.return_value = mock_time_frame
+        result = self.api_data.get_feedback(assignment)
+        self.assertEqual(result, mock_time_frame)
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_get_feedback_failure(self,stdout):
+        """."""
+        assignment = self.create_mock_assignment("1", "Test Assignment")
+        fail_string = "Could not find feedback"
+        self.mock_client.assignment.get_all_feedback.side_effect = Exception(fail_string)
+        result = self.api_data.get_feedback(assignment)
+        self.assertFalse(result)
+        self.assertIn(
+            fail_string,
+            stdout.getvalue().strip(),
+        )
+
+    def test_get_users(self):
+        """."""
+        mock_course = MagicMock()
+        mock_course.id = "course_id"
+        mock_course.name = "course_name"
+        mock_course.created_at = "created_date"
+        users_list = ["user1","user2"]
+        self.mock_client.course.get_all_users.return_value = users_list
+        result = self.api_data.get_users(mock_course)
+        self.assertEqual(result, users_list)
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_get_user_failure(self,stdout):
+        """."""
+        mock_course = MagicMock()
+        fail_string = "Could not find user"
+        self.mock_client.course.get_all_users.side_effect = Exception(fail_string)
+        result = self.api_data.get_users(mock_course)
+        self.assertFalse(result)
+        self.assertIn(
+            fail_string,
+            stdout.getvalue().strip(),
+        )
+
+    def test_get_all_user_submissions(self):
+        mock_course = MagicMock()
+        mock_course.id = "course_id"
+        mock_course.name = "course_name"
+        mock_course.created_at = "created_date"
+        mock_submission1 = self.create_mock_submission(
+            "sub1", "user1ID", "User One", "user1", 90
+        )
+        mock_submission2 = self.create_mock_submission(
+            "sub2", "user1ID", "User One", "user1", 100
+        )
+        mock_submission_list = [mock_submission1,mock_submission2]
+        self.mock_client.course.get_submissions_by_user.return_value = mock_submission_list
+        result = self.api_data.get_all_user_submissions(mock_course,"user1ID")
+        self.assertEqual(result, mock_submission_list)
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_get_all_user_submissions_failure(self,stdout):
+        """."""
+        mock_course = MagicMock()
+        fail_string = "Could not find submissions"
+        self.mock_client.course.get_submissions_by_user.side_effect = Exception(fail_string)
+        result = self.api_data.get_all_user_submissions(mock_course,"1234")
+        self.assertFalse(result)
+        self.assertIn(
+            fail_string,
+            stdout.getvalue().strip(),
+        )
 
     def test_get_rubric_grade(self):
         """Test formatting of get rubric grade method."""
@@ -289,6 +431,21 @@ class TestAPIData(unittest.TestCase):
             self.api_data.download_submission(mock_submission, "output_dir")
 
     @patch("data_ingestion.extract_student_data_from_API.os")
+    @patch("data_ingestion.extract_student_data_from_API.API_Data.mkdir")
+    def test_download_submission_mkdir_failure(self, mock_mkdir, mock_os):
+        """."""
+        mock_submission = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1", 90
+        )
+        mock_zipinfo = MagicMock(name="test.zip")
+        mock_zipdata = b"mock zip data"
+        self.mock_client.submission.get.return_value = mock_zipinfo
+        self.mock_client.file.download.return_value = mock_zipdata
+        mock_mkdir.return_value = None
+        result = self.api_data.download_submission(mock_submission, "output_dir")
+        self.assertFalse(result)
+
+    @patch("data_ingestion.extract_student_data_from_API.os")
     @patch("data_ingestion.extract_student_data_from_API.json")
     @patch("data_ingestion.extract_student_data_from_API.datetime")
     @patch("data_ingestion.extract_student_data_from_API.API_Data.get_json_file")
@@ -366,6 +523,41 @@ class TestAPIData(unittest.TestCase):
             self.api_data.extract_all_assignments(mock_assignments)
 
         mock_os.makedirs.assert_called_once()
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("data_ingestion.extract_student_data_from_API.datetime")
+    def test_extract_all_assignments_lock_date_too_far(self, mock_datetime, stdout):
+        """."""
+        """Test when mkdir fails."""
+        mock_course = MagicMock()
+        mock_course.id = "test_course_id"
+        mock_course.name = "Test Course Name"
+        mock_course.created_at = "created_date"
+        self.api_data.course = mock_course
+        mock_lock = datetime.datetime(9999, 5, 24, 0, 0, 0)
+        mock_datetime.datetime.return_value = mock_lock
+
+        mock_assignment = self.create_mock_assignment(
+            "assign1", "Assignment One", mock_lock
+        )
+        mock_submission1 = self.create_mock_submission(
+            "sub1", "user1", "User One", "user1", 90
+        )
+        mock_submission2 = self.create_mock_submission(
+            "sub2", "user2", "User Two", "user2", 100
+        )
+        mock_assignments = [mock_assignment]
+        mock_submissions = [mock_submission1,mock_submission2]
+
+        mock_now = datetime.datetime.now()
+        mock_datetime.datetime.now.return_value = mock_now
+        
+        self.mock_client.assignment.get_all_submissions.return_value = mock_submissions
+        self.api_data.extract_all_assignments(mock_assignments)
+        self.assertIn(
+            f"not passed yet for {mock_assignment.name}",
+            stdout.getvalue().strip(),
+        )
 
     @patch("sys.stdout", new_callable=StringIO)
     @patch("builtins.open", new_callable=mock_open)
@@ -520,6 +712,17 @@ class TestAPIData(unittest.TestCase):
             "Error deleting directory:",
             stdout.getvalue().strip(),
         )
+
+    @patch("data_ingestion.extract_student_data_from_API.load_dotenv")
+    @patch("data_ingestion.extract_student_data_from_API.codegrade")
+    @patch("data_ingestion.extract_student_data_from_API.os")
+    def test_main(self, mock_os, mock_codegrade, mock_loadenv):
+        """."""
+        mock_loadenv.return_value = None
+        mock_codegrade.login.return_value = self.mock_client
+        mock_os.getenv.return_value = None
+        main()
+        
 
 
 if __name__ == "__main__":
