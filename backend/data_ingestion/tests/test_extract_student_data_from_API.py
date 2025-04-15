@@ -89,7 +89,7 @@ class TestAPIData(unittest.TestCase):
         self.assertIn("mkdir failed", mock_stderr.getvalue())
 
     def test_get_course(self):
-        """"""
+        """Test the get_course method."""
         mock_course1 = MagicMock()
         mock_course1.id = "1"
         mock_course1.name = "Dev course"
@@ -98,16 +98,16 @@ class TestAPIData(unittest.TestCase):
         mock_course2.id = "2"
         mock_course2.name = "cs 101"
         mock_course2.created_at = "january 12"
-        mock_courses_list = [mock_course1,mock_course2]
+        mock_courses_list = [mock_course1, mock_course2]
         self.mock_client.course.get_all.return_value = mock_courses_list
         course = self.api_data.get_course(self.mock_client)
-        self.assertEqual(course,mock_course1)
-    
+        self.assertEqual(course, mock_course1)
+
     def test_get_course_fail(self):
         """Test the fail case."""
         self.mock_client.course.get_all.return_value = Exception()
         result = self.api_data.get_course(self.mock_client)
-        self.assertIsInstance(result,Exception)
+        self.assertIsInstance(result, Exception)
 
     def test_get_assignments(self):
         """Test return of all assignments."""
@@ -136,6 +136,7 @@ class TestAPIData(unittest.TestCase):
     def test_get_rubric_grades_dict_no_assignments(self):
         """
         Test case: No assignments are provided.
+
         Expected behavior: Should return an empty dictionary.
         """
         mock_assignments = []
@@ -189,8 +190,12 @@ class TestAPIData(unittest.TestCase):
         self.mock_client.assignment.get_rubric.assert_called_with(assignment_id="1234")
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_get_rubric_failure(self,stdout):
-        """"""
+    def test_get_rubric_failure(self, stdout):
+        """
+        Test case: Method spits an Exeption.
+
+        Expected behavior: Shoukd return "COUNT NOT FIND RUBRIC" in iostream.
+        """
         fail_string = "COULD NOT FIND RUBRIC"
         self.mock_client.assignment.get_rubric.side_effect = Exception(fail_string)
         assignment = self.create_mock_assignment("1", "Test Assignment")
@@ -202,7 +207,11 @@ class TestAPIData(unittest.TestCase):
         )
 
     def test_get_desc_success(self):
-        """"""
+        """
+        Test case: Get description was a success.
+
+        Expected behavior: Should return the description.
+        """
         assignment = self.create_mock_assignment("1", "Test Assignment")
         mock_desc = "Test Desciption"
         self.mock_client.assignment.get_description.return_value = mock_desc
@@ -210,7 +219,12 @@ class TestAPIData(unittest.TestCase):
         self.assertEqual(result, mock_desc)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_get_desc_failure(self,stdout):
+    def test_get_desc_failure(self, stdout):
+        """
+        Test case: Method throws an Exception.
+
+        Expected behavior: Should return "FAILED TO GET DESCRIPTION".
+        """
         fail_string = "FAILED TO GET DESCRIPTION"
         self.mock_client.assignment.get_description.side_effect = Exception(fail_string)
         assignment = self.create_mock_assignment("1", "Test Assignment")
@@ -220,9 +234,13 @@ class TestAPIData(unittest.TestCase):
             fail_string,
             stdout.getvalue().strip(),
         )
-    
+
     def test_get_time_frames(self):
-        """."""
+        """
+        Test case: Test time frames gives correct (given) output.
+
+        Expected behavior: Should return an given output.
+        """
         assignment = self.create_mock_assignment("1", "Test Assignment")
         mock_time_frame = "may - june"
         self.mock_client.assignment.get_timeframes.return_value = mock_time_frame
@@ -230,10 +248,14 @@ class TestAPIData(unittest.TestCase):
         self.assertEqual(result, mock_time_frame)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_get_time_frames_failure(self,stdout):
-        """."""
+    def test_get_time_frames_failure(self, stdout):
+        """
+        Test case: Method Throws Exception.
+
+        Expected behavior: Should return "FAILED TO GET TIME FRAMES".
+        """
         assignment = self.create_mock_assignment("1", "Test Assignment")
-        fail_string = "FAILED TO GET DESCRIPTION"
+        fail_string = "FAILED TO GET TIME FRAMES"
         self.mock_client.assignment.get_timeframes.side_effect = Exception(fail_string)
         result = self.api_data.get_time_frames(assignment)
         self.assertFalse(result)
@@ -243,19 +265,29 @@ class TestAPIData(unittest.TestCase):
         )
 
     def test_get_feedback(self):
-        """."""
+        """
+        Test case: Get feedback for assignment.
+
+        Expected behavior: Should return "feedback 1".
+        """
         assignment = self.create_mock_assignment("1", "Test Assignment")
-        mock_time_frame = "feedback 1"
-        self.mock_client.assignment.get_all_feedback.return_value = mock_time_frame
+        mock_feedback = "feedback 1"
+        self.mock_client.assignment.get_all_feedback.return_value = mock_feedback
         result = self.api_data.get_feedback(assignment)
-        self.assertEqual(result, mock_time_frame)
+        self.assertEqual(result, mock_feedback)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_get_feedback_failure(self,stdout):
-        """."""
+    def test_get_feedback_failure(self, stdout):
+        """
+        Test case: Method throws Exception.
+
+        Expected behavior: Should return "Could not find feedback".
+        """
         assignment = self.create_mock_assignment("1", "Test Assignment")
         fail_string = "Could not find feedback"
-        self.mock_client.assignment.get_all_feedback.side_effect = Exception(fail_string)
+        self.mock_client.assignment.get_all_feedback.side_effect = Exception(
+            fail_string
+        )
         result = self.api_data.get_feedback(assignment)
         self.assertFalse(result)
         self.assertIn(
@@ -264,19 +296,27 @@ class TestAPIData(unittest.TestCase):
         )
 
     def test_get_users(self):
-        """."""
+        """
+        Test case: Test get users from a course.
+
+        Expected behavior: Should return list of users.
+        """
         mock_course = MagicMock()
         mock_course.id = "course_id"
         mock_course.name = "course_name"
         mock_course.created_at = "created_date"
-        users_list = ["user1","user2"]
+        users_list = ["user1", "user2"]
         self.mock_client.course.get_all_users.return_value = users_list
         result = self.api_data.get_users(mock_course)
         self.assertEqual(result, users_list)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_get_user_failure(self,stdout):
-        """."""
+    def test_get_user_failure(self, stdout):
+        """
+        Test case: Method throws Exception.
+
+        Expected behavior: Should return "Could not find user".
+        """
         mock_course = MagicMock()
         fail_string = "Could not find user"
         self.mock_client.course.get_all_users.side_effect = Exception(fail_string)
@@ -288,6 +328,11 @@ class TestAPIData(unittest.TestCase):
         )
 
     def test_get_all_user_submissions(self):
+        """
+        Test case: Test get all user submissions success.
+
+        Expected behavior: Should return submissions of a given user.
+        """
         mock_course = MagicMock()
         mock_course.id = "course_id"
         mock_course.name = "course_name"
@@ -298,18 +343,26 @@ class TestAPIData(unittest.TestCase):
         mock_submission2 = self.create_mock_submission(
             "sub2", "user1ID", "User One", "user1", 100
         )
-        mock_submission_list = [mock_submission1,mock_submission2]
-        self.mock_client.course.get_submissions_by_user.return_value = mock_submission_list
-        result = self.api_data.get_all_user_submissions(mock_course,"user1ID")
+        mock_submission_list = [mock_submission1, mock_submission2]
+        self.mock_client.course.get_submissions_by_user.return_value = (
+            mock_submission_list
+        )
+        result = self.api_data.get_all_user_submissions(mock_course, "user1ID")
         self.assertEqual(result, mock_submission_list)
 
     @patch("sys.stdout", new_callable=StringIO)
-    def test_get_all_user_submissions_failure(self,stdout):
-        """."""
+    def test_get_all_user_submissions_failure(self, stdout):
+        """
+        Test case: Method Throws Exception.
+
+        Expected behavior: Should return "Could not find submissions".
+        """
         mock_course = MagicMock()
         fail_string = "Could not find submissions"
-        self.mock_client.course.get_submissions_by_user.side_effect = Exception(fail_string)
-        result = self.api_data.get_all_user_submissions(mock_course,"1234")
+        self.mock_client.course.get_submissions_by_user.side_effect = Exception(
+            fail_string
+        )
+        result = self.api_data.get_all_user_submissions(mock_course, "1234")
         self.assertFalse(result)
         self.assertIn(
             fail_string,
@@ -433,7 +486,11 @@ class TestAPIData(unittest.TestCase):
     @patch("data_ingestion.extract_student_data_from_API.os")
     @patch("data_ingestion.extract_student_data_from_API.API_Data.mkdir")
     def test_download_submission_mkdir_failure(self, mock_mkdir, mock_os):
-        """."""
+        """
+        Test case: Method Throws Exception.
+
+        Expected behavior: Should return empty variable.
+        """
         mock_submission = self.create_mock_submission(
             "sub1", "user1", "User One", "user1", 90
         )
@@ -527,8 +584,13 @@ class TestAPIData(unittest.TestCase):
     @patch("sys.stdout", new_callable=StringIO)
     @patch("data_ingestion.extract_student_data_from_API.datetime")
     def test_extract_all_assignments_lock_date_too_far(self, mock_datetime, stdout):
-        """."""
-        """Test when mkdir fails."""
+        """
+        Test case: Tests if lock date works correctly.
+
+        Expected behavior:
+        Continue if lockdate has not passed yet.
+        Should return "not passed yet for {assignment.name}".
+        """
         mock_course = MagicMock()
         mock_course.id = "test_course_id"
         mock_course.name = "Test Course Name"
@@ -547,11 +609,11 @@ class TestAPIData(unittest.TestCase):
             "sub2", "user2", "User Two", "user2", 100
         )
         mock_assignments = [mock_assignment]
-        mock_submissions = [mock_submission1,mock_submission2]
+        mock_submissions = [mock_submission1, mock_submission2]
 
         mock_now = datetime.datetime.now()
         mock_datetime.datetime.now.return_value = mock_now
-        
+
         self.mock_client.assignment.get_all_submissions.return_value = mock_submissions
         self.api_data.extract_all_assignments(mock_assignments)
         self.assertIn(
@@ -717,12 +779,12 @@ class TestAPIData(unittest.TestCase):
     @patch("data_ingestion.extract_student_data_from_API.codegrade")
     @patch("data_ingestion.extract_student_data_from_API.os")
     def test_main(self, mock_os, mock_codegrade, mock_loadenv):
-        """."""
+        """Test case: Test main() ."""
         mock_loadenv.return_value = None
         mock_codegrade.login.return_value = self.mock_client
         mock_os.getenv.return_value = None
         main()
-        
+        mock_codegrade.login.assert_called_once()
 
 
 if __name__ == "__main__":
