@@ -49,7 +49,7 @@ class CourseInstances(models.Model):
     """
 
     semester = models.ForeignKey(
-        "CoursesSemester",
+        "Semester",
         models.CASCADE,
     )
     course_catalog = models.ForeignKey(
@@ -88,7 +88,7 @@ class CourseInstances(models.Model):
         )
 
 
-class CoursesSemester(models.Model):
+class Semester(models.Model):
     """
     Represents a semester in which courses are offered.
 

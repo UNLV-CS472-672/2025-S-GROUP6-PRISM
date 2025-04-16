@@ -13,7 +13,7 @@ from rest_framework.test import APITestCase
 from courses.models import (
     CourseCatalog,
     CourseInstances,
-    CoursesSemester,
+    Semester,
     CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
@@ -37,7 +37,7 @@ class BaseCoursesAPITest(APITestCase):
     @classmethod
     def setUpTestData(cls):
         """Set up test data for the Courses API tests."""
-        cls.semester = CoursesSemester.objects.create(
+        cls.semester = Semester.objects.create(
             name="Fall Semester",
             year=2025,
             term="Fall",
@@ -189,35 +189,35 @@ class CourseInstancesAPITest(BaseCoursesAPITest):
         self.assertTrue(found)
 
 
-class CoursesSemesterAPITest(BaseCoursesAPITest):
-    """Test API endpoints for CoursesSemesterViewSet."""
+class SemesterAPITest(BaseCoursesAPITest):
+    """Test API endpoints for SemesterViewSet."""
 
-    def test_coursessemester_list(self):
+    def test_semester_list(self):
         """Test retrieving a list of courses semester entries."""
-        url = reverse("coursessemester-list")
+        url = reverse("semester-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("results", response.data)
 
-    def test_coursessemester_filter(self):
+    def test_semester_filter(self):
         """Test filtering courses semester entries by year."""
-        url = reverse("coursessemester-list")
+        url = reverse("semester-list")
         response = self.client.get(url, {"year": self.semester.year})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for item in response.data["results"]:
             self.assertEqual(item["year"], self.semester.year)
 
-    def test_coursessemester_ordering(self):
+    def test_semester_ordering(self):
         """Test ordering courses semester entries by year."""
-        url = reverse("coursessemester-list")
+        url = reverse("semester-list")
         response = self.client.get(url, {"ordering": "year"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         years = [item["year"] for item in response.data["results"]]
         self.assertEqual(years, sorted(years))
 
-    def test_coursessemester_search(self):
+    def test_semester_search(self):
         """Test searching courses semester entries by term."""
-        url = reverse("coursessemester-list")
+        url = reverse("semester-list")
         response = self.client.get(url, {"search": self.semester.term})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for item in response.data["results"]:

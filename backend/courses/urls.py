@@ -9,7 +9,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     CourseCatalogViewSet,
     CourseInstancesViewSet,
-    CoursesSemesterViewSet,
+    SemesterViewSet,
     CourseAssignmentCollaborationViewSet,
     StudentsViewSet,
     StudentEnrollmentsViewSet,
@@ -22,7 +22,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r"coursecatalog", CourseCatalogViewSet, basename="coursecatalog")
 router.register(r"courseinstances", CourseInstancesViewSet, basename="courseinstances")
-router.register(r"coursessemester", CoursesSemesterViewSet, basename="coursessemester")
+router.register(r"semester", SemesterViewSet, basename="semester")
 router.register(
     r"courseassignmentcollaboration",
     CourseAssignmentCollaborationViewSet,

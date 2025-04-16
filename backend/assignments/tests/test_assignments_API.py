@@ -19,7 +19,7 @@ from assignments.models import (
     RequiredSubmissionFiles,
 )
 from courses.models import (
-    CoursesSemester,
+    Semester,
     CourseCatalog,
     CourseInstances,
     Professors,
@@ -37,7 +37,7 @@ class BaseViewTest(APITestCase):
     @classmethod
     def setUpTestData(cls):
         """Set up test data for view tests."""
-        cls.semester = CoursesSemester.objects.create(
+        cls.semester = Semester.objects.create(
             name="Fall Semester", year=2025, term="Fall", session="Regular"
         )
         cls.catalog = CourseCatalog.objects.create(

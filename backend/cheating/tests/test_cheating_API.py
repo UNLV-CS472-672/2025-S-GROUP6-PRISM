@@ -19,7 +19,7 @@ from cheating.models import (
     LongitudinalCheatingGroupMembers,
 )
 from courses.models import (
-    CoursesSemester,
+    Semester,
     CourseCatalog,
     CourseInstances,
     Professors,
@@ -40,7 +40,7 @@ class BaseCheatingAPITest(APITestCase):
     @classmethod
     def setUpTestData(cls):
         """Set up test data for Cheating API tests."""
-        cls.semester = CoursesSemester.objects.create(
+        cls.semester = Semester.objects.create(
             name="Fall Semester",
             year=2025,
             term="Fall",

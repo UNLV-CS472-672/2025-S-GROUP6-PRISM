@@ -7,7 +7,7 @@ from prism_backend.mixins import CachedViewMixin
 from .models import (
     CourseCatalog,
     CourseInstances,
-    CoursesSemester,
+    Semester,
     CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
@@ -19,7 +19,7 @@ from .models import (
 from .serializers import (
     CourseCatalogSerializer,
     CourseInstancesSerializer,
-    CoursesSemesterSerializer,
+    SemesterSerializer,
     CourseAssignmentCollaborationSerializer,
     StudentsSerializer,
     StudentEnrollmentsSerializer,
@@ -65,11 +65,11 @@ class CourseInstancesViewSet(viewsets.ModelViewSet, CachedViewMixin):
     search_fields = ["course_catalog__course_title"]
 
 
-class CoursesSemesterViewSet(viewsets.ModelViewSet, CachedViewMixin):
-    """ViewSet for handling CoursesSemester entries."""
+class SemesterViewSet(viewsets.ModelViewSet, CachedViewMixin):
+    """ViewSet for handling Semester entries."""
 
-    queryset = CoursesSemester.objects.all()
-    serializer_class = CoursesSemesterSerializer
+    queryset = Semester.objects.all()
+    serializer_class = SemesterSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [
         DjangoFilterBackend,
