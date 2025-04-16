@@ -21,7 +21,7 @@ export default function RootLayout({ children }: Props) {
 					<CssBaseline />
 						<Providers>
 							<ClientLayout>
-								{props.children}
+								{children}
 							</ClientLayout>
 						</Providers>
 				</ThemeProvider>

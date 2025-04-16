@@ -44,11 +44,13 @@ function Dashboard() {
 
 			{/* Main banner */}
 			<div>
-				 <div className="Banner">
+				
+				<div className="Banner">
 					<Typography>Welcome {user?.first_name}</Typography>
 					<h1>Professor ID: {user?.professor_id}</h1>
 					<h1>User ID: {user?.pk}</h1>
 				</div>
+				
 
 				{/* 2 buttons -> compare students, alerts */}
 				<div className="compareButtons">
@@ -67,7 +69,7 @@ function Dashboard() {
 					))}
 				</div>
 			</div>
-		</Box>
+		</Container>
 	)
 }
 

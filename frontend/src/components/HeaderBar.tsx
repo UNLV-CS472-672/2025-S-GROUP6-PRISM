@@ -27,24 +27,6 @@ const classSections = [
   { className: "Physics 202", sections: ["Section C"] },
 ];
 
-// Real data
-interface ClassInstance {
-  id: number;
-  name: string;
-}
-
-interface Section {
-  id: number;
-  section_number: number;
-  class_instance: {
-    id: number;
-    name: string;
-  };
-  semester: {
-    name: string;
-  }
-}
-
 const staticLinks = [
   { label: "Account", href: "/account" },
   { label: "Alerts", href: "/alerts" },
@@ -54,9 +36,9 @@ const staticLinks = [
 
 const HeaderBar = ({ title }: { title: string }) => {
   const [open, setOpen] = useState(false);
-  const [courses, setCourses] = useState<any[]>([])
+  // const [courses, setCourses] = useState<any[]>([])
 
-  useEffect(() => {
+  /* useEffect(() => {
     const fetchCourses = async () => {
       try {
         const response = await easyFetch(
@@ -76,7 +58,7 @@ const HeaderBar = ({ title }: { title: string }) => {
       }
     }
       fetchCourses()
-  }, [])
+  }, []) */
 
   const toggleDrawer = (state: boolean) => () => {
     setOpen(state);
@@ -104,6 +86,9 @@ const HeaderBar = ({ title }: { title: string }) => {
 
       <Drawer anchor="left" open={open} onClose={toggleDrawer(false)}>
         <Box sx={{ width: 250 }} role="presentation" onClick={toggleDrawer(false)}>
+          {/* This portion is the initial setup for displaying the classes
+              and sections for the current semester with links to the 
+              appropriate assignments page. Commented out for future testing.
           <List
             subheader={<ListSubheader component="div">Classes</ListSubheader>}
           >
@@ -119,7 +104,7 @@ const HeaderBar = ({ title }: { title: string }) => {
             ))}
           </List>
 
-          <Divider />
+          <Divider /> */}
 
           <List
             subheader={<ListSubheader component="div">Navigation</ListSubheader>}

@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import HeaderBar from "@/components/HeaderBar";
 import React, { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext"
+import { easyFetch } from "@/utils/fetchWrapper";
 
 const routeTitles: Record<string, string> = {
   "/account/": "Account",
@@ -16,26 +18,24 @@ const staticUsername = "Alex"; // Replace with your auth logic or context
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const hideHeader = pathname === "/login/";
-  console.log(location.pathname);
+  // console.log(location.pathname);
+  const { user } = useAuth();
   
   const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/user/users", {
+        const res = await easyFetch('http://localhost:8001/api/user/users', {
           method: "GET",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
         });
 
-        //if (!res.ok) throw new Error("Failed to fetch username");
+        if (!res.ok) throw new Error("Failed to fetch username");
 
         const data = await res.json();
-        console.log(JSON.stringify(data));
-        setUsername(data.first_name);
+        const username = data[0]
+        // console.log("Raw data:", JSON.stringify(data, null, 2));
+        setUsername(username?.first_name);
       } catch (error) {
         console.error("Error fetching username:", error);
         setUsername("User");
