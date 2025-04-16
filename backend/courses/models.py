@@ -113,34 +113,6 @@ class Semester(models.Model):
         """
         return f"{self.term} {self.year} - {self.session}"
 
-
-class CourseAssignmentCollaboration(models.Model):
-    """
-    Represents the relationship between a course instance and an assignment.
-
-    Used to track collaboration or linkage between courses and shared
-    assignments.
-    """
-
-    assignment = models.ForeignKey(
-        Assignments,
-        models.CASCADE,
-    )
-    course_instance = models.ForeignKey(
-        "CourseInstances",
-        models.CASCADE,
-    )
-
-    class Meta:
-        """Model metadata configuration."""
-
-        unique_together = (("assignment", "course_instance"),)
-
-    def __str__(self):
-        """Return a readable representation of the course-assignment pairing."""
-        return f"{self.course_instance} ↔ {self.assignment}"
-
-
 class Students(models.Model):
     """
     Represents a student in the system.

@@ -14,7 +14,6 @@ from courses.models import (
     CourseCatalog,
     CourseInstances,
     Semester,
-    CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
     Professors,
@@ -90,10 +89,6 @@ class BaseCoursesAPITest(APITestCase):
             bulk_ai_directory_path="path/to/bulk",
             language="Python",
             has_policy=True,
-        )
-        cls.assignment_collaboration = CourseAssignmentCollaboration.objects.create(
-            assignment=cls.assignment,
-            course_instance=cls.course_instance,
         )
         cls.student_enrollment = StudentEnrollments.objects.create(
             student=cls.student,
@@ -222,17 +217,6 @@ class SemesterAPITest(BaseCoursesAPITest):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for item in response.data["results"]:
             self.assertIn(self.semester.term, item["term"])
-
-
-class CourseAssignmentCollaborationAPITest(BaseCoursesAPITest):
-    """Test API endpoints for CourseAssignmentCollaborationViewSet."""
-
-    def test_courseassignmentcollaboration_list(self):
-        """Test retrieving a list of course assignment collaborations."""
-        url = reverse("courseassignmentcollaboration-list")
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("results", response.data)
 
 
 class StudentsAPITest(BaseCoursesAPITest):

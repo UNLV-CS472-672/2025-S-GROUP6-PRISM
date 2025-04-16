@@ -8,7 +8,6 @@ from .models import (
     CourseCatalog,
     CourseInstances,
     Semester,
-    CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
     Professors,
@@ -20,7 +19,6 @@ from .serializers import (
     CourseCatalogSerializer,
     CourseInstancesSerializer,
     SemesterSerializer,
-    CourseAssignmentCollaborationSerializer,
     StudentsSerializer,
     StudentEnrollmentsSerializer,
     ProfessorsSerializer,
@@ -80,23 +78,6 @@ class SemesterViewSet(viewsets.ModelViewSet, CachedViewMixin):
     ordering_fields = ["year"]
     ordering = ["year"]
     search_fields = ["name", "term", "session"]
-
-
-class CourseAssignmentCollaborationViewSet(viewsets.ModelViewSet, CachedViewMixin):
-    """ViewSet for handling CourseAssignmentCollaboration entries."""
-
-    queryset = CourseAssignmentCollaboration.objects.all()
-    serializer_class = CourseAssignmentCollaborationSerializer
-    pagination_class = StandardResultsSetPagination
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.OrderingFilter,
-        filters.SearchFilter,
-    ]
-    filterset_fields = ["assignment", "course_instance"]
-    ordering_fields = ["assignment", "course_instance"]
-    ordering = ["assignment"]
-    search_fields = []
 
 
 class StudentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
