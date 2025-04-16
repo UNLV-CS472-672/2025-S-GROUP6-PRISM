@@ -236,7 +236,7 @@ class TeachingAssistants(models.Model):
         return f"TeachingAssistant ID {self.id} - {self.user}"
 
 
-class TeachingAssistantEnrollment(models.Model):
+class TeachingAssistantEnrollments(models.Model):
     """
     Represents a TA's enrollment in a course instance.
 
