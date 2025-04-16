@@ -6,7 +6,6 @@ from .models import (
     CourseCatalog,
     CourseInstances,
     Semester,
-    CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
     Professors,
@@ -58,21 +57,6 @@ class SemesterSerializer(serializers.ModelSerializer):
         """
 
         model = Semester
-        fields = "__all__"
-
-
-class CourseAssignmentCollaborationSerializer(serializers.ModelSerializer):
-    """Serializer for the CourseAssignmentCollaboration model."""
-
-    class Meta:
-        """Meta options for CourseAssignmentCollaborationSerializer.
-
-        Attributes:
-            model: The CourseAssignmentCollaboration model.
-            fields: All model fields.
-        """
-
-        model = CourseAssignmentCollaboration
         fields = "__all__"
 
 

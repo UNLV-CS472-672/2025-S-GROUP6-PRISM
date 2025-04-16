@@ -6,7 +6,6 @@ from courses import models
 # Register your models here.
 admin.site.register(models.CourseCatalog)
 admin.site.register(models.CourseInstances)
-admin.site.register(models.CourseAssignmentCollaboration)
 admin.site.register(models.Students)
 admin.site.register(models.StudentEnrollments)
 admin.site.register(models.Professors)

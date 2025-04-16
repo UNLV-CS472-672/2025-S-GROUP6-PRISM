@@ -13,7 +13,6 @@ from courses.models import (
     CourseCatalog,
     CourseInstances,
     Semester,
-    CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
     Professors,
@@ -88,10 +87,6 @@ class BaseCoursesTest(TestCase):
             language="Python",
             has_policy=True,
         )
-        self.assignment_collaboration = CourseAssignmentCollaboration.objects.create(
-            assignment=self.assignment,
-            course_instance=self.course_instance,
-        )
         self.student_enrollment = StudentEnrollments.objects.create(
             student=self.student,
             course_instance=self.course_instance,
@@ -131,11 +126,6 @@ class CoursesModelsStrTest(BaseCoursesTest):
             f"({self.semester})"
         )
         self.assertEqual(str(self.course_instance), expected)
-
-    def test_course_assignment_collaboration_str(self):
-        """Test the __str__ method of CourseAssignmentCollaboration."""
-        expected = f"{self.course_instance} ↔ {self.assignment}"
-        self.assertEqual(str(self.assignment_collaboration), expected)
 
     def test_students_str(self):
         """Test the __str__ method of Students."""
@@ -220,14 +210,6 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
                 year=self.semester.year,
                 term=self.semester.term,
                 session=self.semester.session,
-            )
-
-    def test_unique_course_assignment_collaboration(self):
-        """Test the unique constraint on (assignment, course_instance)."""
-        with self.assertRaises(IntegrityError):
-            CourseAssignmentCollaboration.objects.create(
-                assignment=self.assignment,
-                course_instance=self.course_instance,
             )
 
     def test_unique_student_enrollments(self):
