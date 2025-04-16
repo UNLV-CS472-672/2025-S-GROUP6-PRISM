@@ -7,7 +7,6 @@ classes, and semesters with constraints to ensure data integrity.
 
 from django.db import models
 from django.conf import settings
-from assignments.models import Assignments
 
 
 class CourseCatalog(models.Model):
@@ -112,6 +111,7 @@ class Semester(models.Model):
         Includes term, year, and session.
         """
         return f"{self.term} {self.year} - {self.session}"
+
 
 class Students(models.Model):
     """
