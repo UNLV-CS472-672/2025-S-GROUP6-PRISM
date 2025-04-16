@@ -163,16 +163,19 @@ class SubmissionSimiliarityPairs(models.Model):
     class Meta:
         """Model metadata configuration."""
 
-        unique_together = (("submission_id_1", "submission_id_2"),)
+        unique_together = (("submission_id_1", "submission_id_2", "assignment"),)
 
     def __str__(self):
         """
         Return a readable representation of the similarity pair.
 
-        Displays the two submissions and their similarity percentage.
+        Displays the assignment, the two submissions and their
+        similarity percentage.
         """
         return (
-            f"{self.submission_id_1} ↔ {self.submission_id_2} " f"({self.percentage}%)"
+            f"{self.assignment}: "
+            f"{self.submission_id_1} ↔ {self.submission_id_2} "
+            f"({self.percentage}%)"
         )
 
 
