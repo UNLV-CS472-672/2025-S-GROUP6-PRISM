@@ -113,7 +113,7 @@ class SubmissionSimiliarityPairsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     filterset_fields = ["assignment", "file_name", "match_id"]
     ordering_fields = ["percentage"]
     ordering = ["percentage"]
-    search_fields = ["file_name"]
+    search_fields = ["file_name", "assignment__title"]
 
 
 class LongitudinalCheatingGroupsViewSet(viewsets.ModelViewSet, CachedViewMixin):
