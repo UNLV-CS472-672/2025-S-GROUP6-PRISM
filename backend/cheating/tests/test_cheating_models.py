@@ -12,7 +12,7 @@ from django.test import TestCase
 from courses.models import (
     CourseCatalog,
     CourseInstances,
-    CoursesSemester,
+    Semester,
     CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
@@ -34,7 +34,7 @@ class BaseCoursesTest(TestCase):
 
     def setUp(self):
         """Set up common objects for Courses model tests."""
-        self.semester = CoursesSemester.objects.create(
+        self.semester = Semester.objects.create(
             name="Fall Semester",
             year=2025,
             term="Fall",
@@ -117,7 +117,7 @@ class CoursesModelsStrTest(BaseCoursesTest):
         self.assertEqual(str(self.catalog), expected)
 
     def test_courses_semester_str(self):
-        """Test the __str__ method of CoursesSemester."""
+        """Test the __str__ method of Semester."""
         expected = (
             f"{self.semester.term} {self.semester.year} - {self.semester.session}"
         )
@@ -209,9 +209,9 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
             )
 
     def test_unique_courses_semester(self):
-        """Test the unique constraint on (year, term, session) in CoursesSemester."""
+        """Test the unique constraint on (year, term, session) in Semester."""
         with self.assertRaises(IntegrityError):
-            CoursesSemester.objects.create(
+            Semester.objects.create(
                 name="Fall Duplicate",
                 year=self.semester.year,
                 term=self.semester.term,

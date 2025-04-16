@@ -24,7 +24,7 @@ from assignments.models import (
 User = get_user_model()
 
 # Retrieve required models from the courses app.
-CoursesSemester = apps.get_model("courses", "CoursesSemester")
+Semester = apps.get_model("courses", "Semester")
 CourseCatalog = apps.get_model("courses", "CourseCatalog")
 Professors = apps.get_model("courses", "Professors")
 TeachingAssistants = apps.get_model("courses", "TeachingAssistants")
@@ -41,7 +41,7 @@ class BaseAssignmentsTest(TestCase):
 
     def setUp(self):
         """Create common objects for all assignments model tests."""
-        self.semester = CoursesSemester.objects.create(
+        self.semester = Semester.objects.create(
             name="Fall Semester",
             year=2025,
             term="Fall",

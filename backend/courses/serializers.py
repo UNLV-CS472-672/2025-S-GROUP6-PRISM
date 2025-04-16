@@ -5,7 +5,7 @@ from rest_framework import serializers
 from .models import (
     CourseCatalog,
     CourseInstances,
-    CoursesSemester,
+    Semester,
     CourseAssignmentCollaboration,
     Students,
     StudentEnrollments,
@@ -46,18 +46,18 @@ class CourseInstancesSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class CoursesSemesterSerializer(serializers.ModelSerializer):
-    """Serializer for the CoursesSemester model."""
+class SemesterSerializer(serializers.ModelSerializer):
+    """Serializer for the Semester model."""
 
     class Meta:
-        """Meta options for CoursesSemesterSerializer.
+        """Meta options for SemesterSerializer.
 
         Attributes:
-            model: The CoursesSemester model.
+            model: The Semester model.
             fields: All model fields.
         """
 
-        model = CoursesSemester
+        model = Semester
         fields = "__all__"
 
 
