@@ -15,7 +15,7 @@ from .views import (
     ProfessorsViewSet,
     ProfessorEnrollmentsViewSet,
     TeachingAssistantsViewSet,
-    TeachingAssistantEnrollmentViewSet,
+    TeachingAssistantEnrollmentsViewSet,
 )
 
 router = DefaultRouter()
@@ -36,9 +36,9 @@ router.register(
     r"teachingassistants", TeachingAssistantsViewSet, basename="teachingassistants"
 )
 router.register(
-    r"teachingassistantenrollment",
-    TeachingAssistantEnrollmentViewSet,
-    basename="teachingassistantenrollment",
+    r"teachingassistantenrollments",
+    TeachingAssistantEnrollmentsViewSet,
+    basename="teachingassistantenrollments",
 )
 
 urlpatterns = [

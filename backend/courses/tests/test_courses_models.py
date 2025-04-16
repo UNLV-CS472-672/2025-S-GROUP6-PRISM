@@ -18,7 +18,7 @@ from courses.models import (
     Professors,
     ProfessorEnrollments,
     TeachingAssistants,
-    TeachingAssistantEnrollment,
+    TeachingAssistantEnrollments,
 )
 from assignments.models import Assignments
 
@@ -95,7 +95,7 @@ class BaseCoursesTest(TestCase):
             professor=self.professor,
             course_instance=self.course_instance,
         )
-        self.ta_enrollment = TeachingAssistantEnrollment.objects.create(
+        self.ta_enrollment = TeachingAssistantEnrollments.objects.create(
             teaching_assistant=self.ta,
             course_instance=self.course_instance,
         )
@@ -156,7 +156,7 @@ class CoursesModelsStrTest(BaseCoursesTest):
         self.assertEqual(str(self.ta), expected)
 
     def test_teaching_assistant_enrollment_str(self):
-        """Test the __str__ method of TeachingAssistantEnrollment."""
+        """Test the __str__ method of TeachingAssistantEnrollments."""
         expected = f"{self.ta} assigned to {self.course_instance}"
         self.assertEqual(str(self.ta_enrollment), expected)
 
@@ -231,7 +231,7 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
     def test_unique_teaching_assistant_enrollment(self):
         """Test the unique constraint on (teaching_assistant, course_instance)."""
         with self.assertRaises(IntegrityError):
-            TeachingAssistantEnrollment.objects.create(
+            TeachingAssistantEnrollments.objects.create(
                 teaching_assistant=self.ta,
                 course_instance=self.course_instance,
             )

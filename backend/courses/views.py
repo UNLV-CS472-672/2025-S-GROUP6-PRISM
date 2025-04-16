@@ -13,7 +13,7 @@ from .models import (
     Professors,
     ProfessorEnrollments,
     TeachingAssistants,
-    TeachingAssistantEnrollment,
+    TeachingAssistantEnrollments,
 )
 from .serializers import (
     CourseCatalogSerializer,
@@ -24,7 +24,7 @@ from .serializers import (
     ProfessorsSerializer,
     ProfessorEnrollmentsSerializer,
     TeachingAssistantsSerializer,
-    TeachingAssistantEnrollmentSerializer,
+    TeachingAssistantEnrollmentsSerializer,
 )
 from .pagination import StandardResultsSetPagination
 
@@ -165,11 +165,11 @@ class TeachingAssistantsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     search_fields = ["user__username"]
 
 
-class TeachingAssistantEnrollmentViewSet(viewsets.ModelViewSet, CachedViewMixin):
-    """ViewSet for handling TeachingAssistantEnrollment entries."""
+class TeachingAssistantEnrollmentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
+    """ViewSet for handling TeachingAssistantEnrollments entries."""
 
-    queryset = TeachingAssistantEnrollment.objects.all()
-    serializer_class = TeachingAssistantEnrollmentSerializer
+    queryset = TeachingAssistantEnrollments.objects.all()
+    serializer_class = TeachingAssistantEnrollmentsSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [
         DjangoFilterBackend,

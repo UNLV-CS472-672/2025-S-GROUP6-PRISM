@@ -11,7 +11,7 @@ from .models import (
     Professors,
     ProfessorEnrollments,
     TeachingAssistants,
-    TeachingAssistantEnrollment,
+    TeachingAssistantEnrollments,
 )
 
 
@@ -135,16 +135,16 @@ class TeachingAssistantsSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class TeachingAssistantEnrollmentSerializer(serializers.ModelSerializer):
-    """Serializer for the TeachingAssistantEnrollment model."""
+class TeachingAssistantEnrollmentsSerializer(serializers.ModelSerializer):
+    """Serializer for the TeachingAssistantEnrollments model."""
 
     class Meta:
-        """Meta options for TeachingAssistantEnrollmentSerializer.
+        """Meta options for TeachingAssistantEnrollmentsSerializer.
 
         Attributes:
-            model: The TeachingAssistantEnrollment model.
+            model: The TeachingAssistantEnrollments model.
             fields: All model fields.
         """
 
-        model = TeachingAssistantEnrollment
+        model = TeachingAssistantEnrollments
         fields = "__all__"

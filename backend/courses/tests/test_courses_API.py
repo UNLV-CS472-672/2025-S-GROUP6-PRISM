@@ -19,7 +19,7 @@ from courses.models import (
     Professors,
     ProfessorEnrollments,
     TeachingAssistants,
-    TeachingAssistantEnrollment,
+    TeachingAssistantEnrollments,
 )
 from assignments.models import Assignments
 from django.contrib.auth import get_user_model
@@ -98,7 +98,7 @@ class BaseCoursesAPITest(APITestCase):
             professor=cls.professor,
             course_instance=cls.course_instance,
         )
-        cls.ta_enrollment = TeachingAssistantEnrollment.objects.create(
+        cls.ta_enrollment = TeachingAssistantEnrollments.objects.create(
             teaching_assistant=cls.ta,
             course_instance=cls.course_instance,
         )
@@ -340,12 +340,12 @@ class TeachingAssistantsAPITest(BaseCoursesAPITest):
         self.assertTrue(found)
 
 
-class TeachingAssistantEnrollmentAPITest(BaseCoursesAPITest):
-    """Test API endpoints for TeachingAssistantEnrollmentViewSet."""
+class TeachingAssistantEnrollmentsAPITest(BaseCoursesAPITest):
+    """Test API endpoints for TeachingAssistantEnrollmentsViewSet."""
 
-    def test_teachingassistantenrollment_list(self):
+    def test_teachingassistantenrollments_list(self):
         """Test retrieving a list of teaching assistant enrollments."""
-        url = reverse("teachingassistantenrollment-list")
+        url = reverse("teachingassistantenrollments-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("results", response.data)
