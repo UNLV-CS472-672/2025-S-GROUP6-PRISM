@@ -81,11 +81,14 @@ class BaseCheatingAPITest(APITestCase):
             first_name="John",
             last_name="Doe",
         )
+        # Reflect updated Assignments model: use course_catalog & semester
+        # instead of course_instance, and due_date instead of lock_date.
         cls.assignment = Assignments.objects.create(
-            course_instance=cls.course_instance,
+            course_catalog=cls.catalog,
+            semester=cls.semester,
             assignment_number=1,
             title="Test Assignment",
-            lock_date=datetime.date.today(),
+            due_date=datetime.date.today(),
             pdf_filepath="path/to/pdf",
             has_base_code=True,
             moss_report_directory_path="path/to/moss",
@@ -230,12 +233,13 @@ class ConfirmedCheatersAPITest(BaseCheatingAPITest):
         for item in response.data["results"]:
             # Expecting a string in YYYY-MM-DD format.
             self.assertEqual(
-                item["confirmed_date"], confirmed_date.strftime("%Y-%m-%d")
+                item["confirmed_date"],
+                confirmed_date.strftime("%Y-%m-%d"),
             )
 
 
-class SubmissionSimiliarityPairsAPITest(BaseCheatingAPITest):
-    """Tests for the SubmissionSimiliarityPairsViewSet endpoints."""
+class SubmissionSimilarityPairsAPITest(BaseCheatingAPITest):
+    """Tests for the SubmissionSimilarityPairsViewSet endpoints."""
 
     def test_submission_similarity_pairs_search(self):
         """Test searching submission similarity pairs by file_name."""
@@ -293,8 +297,10 @@ class LongitudinalCheatingGroupMembersAPITest(BaseCheatingAPITest):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("results", response.data)
 
-    def test_longitudinal_cheating_group_members_ordering(self):
-        """Test ordering longitudinal cheating group members by appearance_count."""
+    def test_longitudinal_cheating_group_members_ordering(
+        self,
+    ):
+        """Test ordering longitudinalcheatinggroup members by appearance_count."""
         long_group = LongitudinalCheatingGroups.objects.create(score=85.0)
         LongitudinalCheatingGroupMembers.objects.create(
             longitudinal_cheating_group=long_group,

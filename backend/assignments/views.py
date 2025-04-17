@@ -36,10 +36,22 @@ class AssignmentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
         filters.OrderingFilter,
         filters.SearchFilter,
     ]
-    filterset_fields = ["assignment_number", "language", "has_base_code", "has_policy"]
-    ordering_fields = ["assignment_number", "lock_date"]
+    filterset_fields = [
+        "course_catalog",
+        "semester",
+        "assignment_number",
+        "language",
+        "has_base_code",
+        "has_policy",
+        "due_date",
+    ]
+    ordering_fields = ["assignment_number", "due_date"]
     ordering = ["assignment_number"]
-    search_fields = ["title", "pdf_filepath", "moss_report_directory_path"]
+    search_fields = [
+        "title",
+        "pdf_filepath",
+        "moss_report_directory_path",
+    ]
 
 
 class SubmissionsViewSet(viewsets.ModelViewSet, CachedViewMixin):
@@ -104,7 +116,12 @@ class ConstraintsViewSet(viewsets.ModelViewSet, CachedViewMixin):
         filters.OrderingFilter,
         filters.SearchFilter,
     ]
-    filterset_fields = ["identifier", "is_library", "is_keyword", "is_permitted"]
+    filterset_fields = [
+        "identifier",
+        "is_library",
+        "is_keyword",
+        "is_permitted",
+    ]
     ordering_fields = ["identifier"]
     ordering = ["identifier"]
     search_fields = ["identifier"]
@@ -124,7 +141,6 @@ class PolicyViolationsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     filterset_fields = ["line_number"]
     ordering_fields = ["line_number"]
     ordering = ["line_number"]
-    # mainly numerical values so no need here
     search_fields = []
 
 

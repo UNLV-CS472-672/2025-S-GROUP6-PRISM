@@ -9,19 +9,23 @@ from django.db import models
 
 class Assignments(models.Model):
     """
-    Represents an assignment within a specific course instance.
+    Represents an assignment for a given course catalog and semester.
 
-    Includes metadata such as assignment number, title, language,
-    directory paths, and whether base code or a policy applies.
+    Includes assignment number, title, due date, language, directory paths,
+    and flags for base code and policy.
     """
 
-    course_instance = models.ForeignKey(
-        "courses.CourseInstances",
+    course_catalog = models.ForeignKey(
+        "courses.CourseCatalog",
+        models.CASCADE,
+    )
+    semester = models.ForeignKey(
+        "courses.Semester",
         models.CASCADE,
     )
     assignment_number = models.SmallIntegerField()
     title = models.TextField()
-    lock_date = models.DateField()
+    due_date = models.DateField()
     pdf_filepath = models.TextField(
         unique=True,
         blank=True,
@@ -36,16 +40,16 @@ class Assignments(models.Model):
     class Meta:
         """Model metadata configuration."""
 
-        unique_together = (("course_instance", "assignment_number"),)
+        unique_together = (("course_catalog", "semester", "assignment_number"),)
 
     def __str__(self):
         """
         Return a readable representation of the assignment.
 
-        Includes course instance, assignment number, and title.
+        Includes course catalog, semester, assignment number, and title.
         """
         return (
-            f"{self.course_instance} - "
+            f"{self.course_catalog} [{self.semester}] – "
             f"Assignment {self.assignment_number}: {self.title}"
         )
 
