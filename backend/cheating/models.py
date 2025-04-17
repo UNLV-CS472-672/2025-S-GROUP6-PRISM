@@ -113,7 +113,7 @@ class FlaggedStudents(models.Model):
         models.CASCADE,
     )
     similarity = models.ForeignKey(
-        "SubmissionSimiliarityPairs",
+        "SubmissionSimilarityPairs",
         models.CASCADE,
     )
     generative_ai = models.BooleanField()
@@ -133,7 +133,7 @@ class FlaggedStudents(models.Model):
         return f"{self.student} flagged by {self.professor} ({ai_flag})"
 
 
-class SubmissionSimiliarityPairs(models.Model):
+class SubmissionSimilarityPairs(models.Model):
     """
     Represents a detected similarity between two student submissions.
 
@@ -155,7 +155,7 @@ class SubmissionSimiliarityPairs(models.Model):
         Submissions,
         models.CASCADE,
         db_column="submission_id_2",
-        related_name=("submissionsimiliaritypairs_submission_id_2_set"),
+        related_name=("submissionsimilaritypairs_submission_id_2_set"),
     )
     match_id = models.BigIntegerField()
     percentage = models.IntegerField()

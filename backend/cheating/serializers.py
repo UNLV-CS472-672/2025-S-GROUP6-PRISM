@@ -7,7 +7,7 @@ from .models import (
     CheatingGroupMembers,
     ConfirmedCheaters,
     FlaggedStudents,
-    SubmissionSimiliarityPairs,
+    SubmissionSimilarityPairs,
     LongitudinalCheatingGroups,
     LongitudinalCheatingGroupMembers,
     LongitudinalCheatingGroupInstances,
@@ -74,18 +74,18 @@ class FlaggedStudentsSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class SubmissionSimiliarityPairsSerializer(serializers.ModelSerializer):
-    """Serializer for the SubmissionSimiliarityPairs model."""
+class SubmissionSimilarityPairsSerializer(serializers.ModelSerializer):
+    """Serializer for the SubmissionSimilarityPairs model."""
 
     class Meta:
-        """Meta options for SubmissionSimiliarityPairsSerializer.
+        """Meta options for SubmissionSimilarityPairsSerializer.
 
         Attributes:
-            model: The SubmissionSimiliarityPairs model.
+            model: The SubmissionSimilarityPairs model.
             fields: All model fields.
         """
 
-        model = SubmissionSimiliarityPairs
+        model = SubmissionSimilarityPairs
         fields = "__all__"
 
 

@@ -167,7 +167,7 @@ class AssignmentsModelsStrTest(BaseAssignmentsTest):
             assignment=self.assignment,
             student=self.student,
             course_instance=self.course_instance,
-            file_path="path/to/flagged_submission",
+            file_path="path/to/flagged",
         )
         violation = PolicyViolations.objects.create(
             constraint=constraint,
@@ -283,14 +283,14 @@ class AssignmentsModelsUniqueTest(BaseAssignmentsTest):
             course_instance=self.course_instance,
             file_path="path/to/sub2",
         )
-        pd = {
+        pv = {
             "constraint": constraint,
             "submission": sub,
             "line_number": 10,
         }
-        PolicyViolations.objects.create(**pd)
+        PolicyViolations.objects.create(**pv)
         with self.assertRaises(IntegrityError):
-            PolicyViolations.objects.create(**pd)
+            PolicyViolations.objects.create(**pv)
 
     def test_required_submission_files_unique_together(self):
         """Ensure RequiredSubmissionFiles cannot share assignment and file_name."""
