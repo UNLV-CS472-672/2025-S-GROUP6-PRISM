@@ -42,7 +42,7 @@ class BaseCoursesAPITest(APITestCase):
             term="Fall",
             session="Regular",
         )
-        cls.catalog = CourseCatalog.objects.create(
+        cls.course_catalog = CourseCatalog.objects.create(
             name="CS101",
             subject="CS",
             catalog_number=101,
@@ -54,7 +54,6 @@ class BaseCoursesAPITest(APITestCase):
             password="pass123",
             email="professor@example.com",
         )
-        # Provide email for TA as well.
         cls.ta_user = User.objects.create_user(
             username="ta1",
             password="pass123",
@@ -64,7 +63,7 @@ class BaseCoursesAPITest(APITestCase):
         cls.ta = TeachingAssistants.objects.create(user=cls.ta_user)
         cls.course_instance = CourseInstances.objects.create(
             semester=cls.semester,
-            course_catalog=cls.catalog,
+            course_catalog=cls.course_catalog,
             section_number=1,
             professor=cls.professor,
             teaching_assistant=cls.ta,
@@ -79,10 +78,11 @@ class BaseCoursesAPITest(APITestCase):
             last_name="Doe",
         )
         cls.assignment = Assignments.objects.create(
-            course_instance=cls.course_instance,
+            course_catalog=cls.course_catalog,
+            semester=cls.semester,
             assignment_number=1,
             title="Test Assignment",
-            lock_date=datetime.date.today(),
+            due_date=datetime.date.today(),
             pdf_filepath="path/to/pdf",
             has_base_code=True,
             moss_report_directory_path="path/to/moss",
@@ -118,10 +118,10 @@ class CourseCatalogAPITest(BaseCoursesAPITest):
     def test_coursecatalog_filter(self):
         """Test filtering course catalog entries by subject."""
         url = reverse("coursecatalog-list")
-        response = self.client.get(url, {"subject": self.catalog.subject})
+        response = self.client.get(url, {"subject": self.course_catalog.subject})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for item in response.data["results"]:
-            self.assertEqual(item["subject"], self.catalog.subject)
+            self.assertEqual(item["subject"], self.course_catalog.subject)
 
     def test_coursecatalog_ordering(self):
         """Test ordering course catalog entries by catalog_number."""
@@ -171,14 +171,12 @@ class CourseInstancesAPITest(BaseCoursesAPITest):
         self.assertEqual(sections, sorted(sections))
 
     def test_courseinstances_search(self):
-        """Test searching course instances by course_catalog__course_title."""
+        """Test searching course instances by course_catalog."""
         url = reverse("courseinstances-list")
         response = self.client.get(url, {"search": "Intro"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Since the serializer returns the primary key for course_catalog,
-        # we check that at least one result has the expected course_catalog ID.
         found = any(
-            item.get("course_catalog") == self.catalog.pk
+            item.get("course_catalog") == self.course_catalog.pk
             for item in response.data["results"]
         )
         self.assertTrue(found)
@@ -188,14 +186,14 @@ class SemesterAPITest(BaseCoursesAPITest):
     """Test API endpoints for SemesterViewSet."""
 
     def test_semester_list(self):
-        """Test retrieving a list of courses semester entries."""
+        """Test retrieving a list of semester entries."""
         url = reverse("semester-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("results", response.data)
 
     def test_semester_filter(self):
-        """Test filtering courses semester entries by year."""
+        """Test filtering semester entries by year."""
         url = reverse("semester-list")
         response = self.client.get(url, {"year": self.semester.year})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -203,7 +201,7 @@ class SemesterAPITest(BaseCoursesAPITest):
             self.assertEqual(item["year"], self.semester.year)
 
     def test_semester_ordering(self):
-        """Test ordering courses semester entries by year."""
+        """Test ordering semester entries by year."""
         url = reverse("semester-list")
         response = self.client.get(url, {"ordering": "year"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -211,7 +209,7 @@ class SemesterAPITest(BaseCoursesAPITest):
         self.assertEqual(years, sorted(years))
 
     def test_semester_search(self):
-        """Test searching courses semester entries by term."""
+        """Test searching semester entries by term."""
         url = reverse("semester-list")
         response = self.client.get(url, {"search": self.semester.term})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -288,8 +286,6 @@ class ProfessorsAPITest(BaseCoursesAPITest):
         url = reverse("professors-list")
         response = self.client.get(url, {"search": self.professor.user.username})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Since the default serializer only returns the user ID (e.g., "user": 1),
-        # we verify that at least one result has the same user ID as our professor.
         found = any(
             item.get("user") == self.professor.user.id
             for item in response.data["results"]
@@ -331,9 +327,6 @@ class TeachingAssistantsAPITest(BaseCoursesAPITest):
         url = reverse("teachingassistants-list")
         response = self.client.get(url, {"search": self.ta.user.username})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Since the serializer returns the user ID (e.g., "user": 1) rather than
-        # a nested "user__username" field, check that one of the results has the
-        # expected user ID.
         found = any(
             item.get("user") == self.ta.user.id for item in response.data["results"]
         )
@@ -344,7 +337,7 @@ class TeachingAssistantEnrollmentsAPITest(BaseCoursesAPITest):
     """Test API endpoints for TeachingAssistantEnrollmentsViewSet."""
 
     def test_teachingassistantenrollments_list(self):
-        """Test retrieving a list of teaching assistant enrollments."""
+        """Test retrieving a list of TA enrollment entries."""
         url = reverse("teachingassistantenrollments-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

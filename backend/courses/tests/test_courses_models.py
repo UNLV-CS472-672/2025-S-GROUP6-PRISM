@@ -75,11 +75,14 @@ class BaseCoursesTest(TestCase):
             first_name="John",
             last_name="Doe",
         )
+        # Reflect updated Assignments model: use course_catalog & semester
+        # instead of course_instance and lock_date → due_date.
         self.assignment = Assignments.objects.create(
-            course_instance=self.course_instance,
+            course_catalog=self.catalog,
+            semester=self.semester,
             assignment_number=1,
             title="Test Assignment",
-            lock_date=datetime.date.today(),
+            due_date=datetime.date.today(),
             pdf_filepath="path/to/pdf",
             has_base_code=True,
             moss_report_directory_path="path/to/moss",
@@ -115,15 +118,15 @@ class CoursesModelsStrTest(BaseCoursesTest):
     def test_courses_semester_str(self):
         """Test the __str__ method of Semester."""
         expected = (
-            f"{self.semester.term} {self.semester.year} - {self.semester.session}"
+            f"{self.semester.term} {self.semester.year} - " f"{self.semester.session}"
         )
         self.assertEqual(str(self.semester), expected)
 
     def test_course_instances_str(self):
         """Test the __str__ method of CourseInstances."""
         expected = (
-            f"{self.catalog} - Section {self.course_instance.section_number} "
-            f"({self.semester})"
+            f"{self.catalog} - Section "
+            f"{self.course_instance.section_number} ({self.semester})"
         )
         self.assertEqual(str(self.course_instance), expected)
 
@@ -137,7 +140,7 @@ class CoursesModelsStrTest(BaseCoursesTest):
 
     def test_student_enrollments_str(self):
         """Test the __str__ method of StudentEnrollments."""
-        expected = f"{self.student} enrolled in {self.course_instance}"
+        expected = f"{self.student} enrolled in " f"{self.course_instance}"
         self.assertEqual(str(self.student_enrollment), expected)
 
     def test_professors_str(self):
@@ -147,8 +150,11 @@ class CoursesModelsStrTest(BaseCoursesTest):
 
     def test_professor_enrollments_str(self):
         """Test the __str__ method of ProfessorEnrollments."""
-        expected = f"{self.professor} assigned to {self.course_instance}"
-        self.assertEqual(str(self.professor_enrollment), expected)
+        expected = f"{self.professor} assigned to " f"{self.course_instance}"
+        self.assertEqual(
+            str(self.professor_enrollment),
+            expected,
+        )
 
     def test_teaching_assistants_str(self):
         """Test the __str__ method of TeachingAssistants."""
@@ -157,7 +163,7 @@ class CoursesModelsStrTest(BaseCoursesTest):
 
     def test_teaching_assistant_enrollment_str(self):
         """Test the __str__ method of TeachingAssistantEnrollments."""
-        expected = f"{self.ta} assigned to {self.course_instance}"
+        expected = f"{self.ta} assigned to " f"{self.course_instance}"
         self.assertEqual(str(self.ta_enrollment), expected)
 
 
@@ -165,7 +171,7 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
     """Test unique constraints for Courses app models."""
 
     def test_unique_course_catalog(self):
-        """Test the unique constraint on (subject, catalog_number) in CourseCatalog."""
+        """Test the unique constraint on (subject, catalog_number)."""
         with self.assertRaises(IntegrityError):
             CourseCatalog.objects.create(
                 name="CS101-dup",
@@ -176,10 +182,7 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
             )
 
     def test_unique_course_instances(self):
-        """Test the unique constraint.
-
-        (semester, course_catalog, section_number, professor).
-        """
+        """Test the unique constraint on CourseInstances."""
         with self.assertRaises(IntegrityError):
             CourseInstances.objects.create(
                 semester=self.semester,
@@ -191,7 +194,7 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
             )
 
     def test_unique_canvas_course_id(self):
-        """Test the uniqueness of canvas_course_id in CourseInstances."""
+        """Test the uniqueness of canvas_course_id."""
         with self.assertRaises(IntegrityError):
             CourseInstances.objects.create(
                 semester=self.semester,
@@ -199,11 +202,11 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
                 section_number=2,
                 professor=self.professor,
                 teaching_assistant=self.ta,
-                canvas_course_id=self.course_instance.canvas_course_id,
+                canvas_course_id=(self.course_instance.canvas_course_id),
             )
 
     def test_unique_semester(self):
-        """Test the unique constraint on (year, term, session) in Semester."""
+        """Test the unique constraint on (year, term, session)."""
         with self.assertRaises(IntegrityError):
             Semester.objects.create(
                 name="Fall Duplicate",
@@ -213,7 +216,7 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
             )
 
     def test_unique_student_enrollments(self):
-        """Test the unique constraint on (student, course_instance) in StudentEnrollments."""
+        """Test the unique constraint on StudentEnrollments."""
         with self.assertRaises(IntegrityError):
             StudentEnrollments.objects.create(
                 student=self.student,
@@ -221,7 +224,7 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
             )
 
     def test_unique_professor_enrollments(self):
-        """Test the unique constraint on (professor, course_instance)."""
+        """Test the unique constraint on ProfessorEnrollments."""
         with self.assertRaises(IntegrityError):
             ProfessorEnrollments.objects.create(
                 professor=self.professor,
@@ -229,7 +232,7 @@ class CoursesModelsUniqueTest(BaseCoursesTest):
             )
 
     def test_unique_teaching_assistant_enrollment(self):
-        """Test the unique constraint on (teaching_assistant, course_instance)."""
+        """Test the unique constraint on TA enrollments."""
         with self.assertRaises(IntegrityError):
             TeachingAssistantEnrollments.objects.create(
                 teaching_assistant=self.ta,

@@ -5,28 +5,29 @@ This module tests the API endpoints for assignments and related models.
 
 import datetime
 
+from django.contrib.auth import get_user_model
 from django.urls import reverse
+
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import (
     Assignments,
-    Submissions,
     BaseFiles,
     BulkSubmissions,
     Constraints,
     PolicyViolations,
     RequiredSubmissionFiles,
+    Submissions,
 )
 from courses.models import (
-    Semester,
     CourseCatalog,
     CourseInstances,
     Professors,
-    TeachingAssistants,
+    Semester,
     Students,
+    TeachingAssistants,
 )
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -38,7 +39,10 @@ class BaseViewTest(APITestCase):
     def setUpTestData(cls):
         """Set up test data for view tests."""
         cls.semester = Semester.objects.create(
-            name="Fall Semester", year=2025, term="Fall", session="Regular"
+            name="Fall Semester",
+            year=2025,
+            term="Fall",
+            session="Regular",
         )
         cls.catalog = CourseCatalog.objects.create(
             name="CS101",
@@ -58,7 +62,9 @@ class BaseViewTest(APITestCase):
             email="ta1@example.com",
         )
         cls.professor = Professors.objects.create(user=cls.professor_user)
-        cls.teaching_assistant = TeachingAssistants.objects.create(user=cls.ta_user)
+        cls.teaching_assistant = TeachingAssistants.objects.create(
+            user=cls.ta_user,
+        )
         cls.course_instance = CourseInstances.objects.create(
             semester=cls.semester,
             course_catalog=cls.catalog,
@@ -76,10 +82,11 @@ class BaseViewTest(APITestCase):
             last_name="Doe",
         )
         cls.assignment = Assignments.objects.create(
-            course_instance=cls.course_instance,
+            course_catalog=cls.catalog,
+            semester=cls.semester,
             assignment_number=1,
             title="Test Assignment",
-            lock_date=datetime.date.today(),
+            due_date=datetime.date.today(),
             pdf_filepath="path/to/pdf",
             has_base_code=True,
             moss_report_directory_path="path/to/moss",
@@ -149,8 +156,7 @@ class AssignmentsViewSetTest(BaseViewTest):
         url = reverse("assignments-list")
         response = self.client.get(url, {"ordering": "assignment_number"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"]
-        numbers = [item["assignment_number"] for item in results]
+        numbers = [item["assignment_number"] for item in response.data["results"]]
         self.assertEqual(numbers, sorted(numbers))
 
     def test_assignments_search(self):
@@ -165,10 +171,11 @@ class AssignmentsViewSetTest(BaseViewTest):
         """Test pagination on the assignments endpoint."""
         for i in range(15):
             Assignments.objects.create(
-                course_instance=self.course_instance,
+                course_catalog=self.catalog,
+                semester=self.semester,
                 assignment_number=100 + i,
                 title=f"Assignment {100 + i}",
-                lock_date=datetime.date.today(),
+                due_date=datetime.date.today(),
                 pdf_filepath=f"path/to/pdf{i}",
                 has_base_code=True,
                 moss_report_directory_path=f"path/to/moss{i}",
@@ -208,8 +215,7 @@ class SubmissionsViewSetTest(BaseViewTest):
         url = reverse("submissions-list")
         response = self.client.get(url, {"ordering": "grade"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"]
-        grades = [item["grade"] for item in results]
+        grades = [item["grade"] for item in response.data["results"]]
         self.assertEqual(grades, sorted(grades))
 
     def test_submissions_search(self):
@@ -245,8 +251,7 @@ class BaseFilesViewSetTest(BaseViewTest):
         url = reverse("basefiles-list")
         response = self.client.get(url, {"ordering": "file_name"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"]
-        names = [item["file_name"] for item in results]
+        names = [item["file_name"] for item in response.data["results"]]
         self.assertEqual(names, sorted(names))
 
     def test_basefiles_search(self):
@@ -282,8 +287,7 @@ class BulkSubmissionsViewSetTest(BaseViewTest):
         url = reverse("bulksubmissions-list")
         response = self.client.get(url, {"ordering": "directory_path"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"]
-        paths = [item["directory_path"] for item in results]
+        paths = [item["directory_path"] for item in response.data["results"]]
         self.assertEqual(paths, sorted(paths))
 
     def test_bulk_submissions_search(self):
@@ -319,8 +323,7 @@ class ConstraintsViewSetTest(BaseViewTest):
         url = reverse("constraints-list")
         response = self.client.get(url, {"ordering": "identifier"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"]
-        identifiers = [item["identifier"] for item in results]
+        identifiers = [item["identifier"] for item in response.data["results"]]
         self.assertEqual(identifiers, sorted(identifiers))
 
     def test_constraints_search(self):
@@ -356,8 +359,7 @@ class PolicyViolationsViewSetTest(BaseViewTest):
         url = reverse("policyviolations-list")
         response = self.client.get(url, {"ordering": "line_number"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"]
-        lines = [item["line_number"] for item in results]
+        lines = [item["line_number"] for item in response.data["results"]]
         self.assertEqual(lines, sorted(lines))
 
     def test_policy_violations_search(self):
@@ -392,8 +394,7 @@ class RequiredSubmissionFilesViewSetTest(BaseViewTest):
         url = reverse("requiredsubmissionfiles-list")
         response = self.client.get(url, {"ordering": "file_name"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"]
-        names = [item["file_name"] for item in results]
+        names = [item["file_name"] for item in response.data["results"]]
         self.assertEqual(names, sorted(names))
 
     def test_required_submission_files_search(self):
