@@ -11,7 +11,7 @@ from .views import (
     CheatingGroupMembersViewSet,
     ConfirmedCheatersViewSet,
     FlaggedStudentsViewSet,
-    SubmissionSimiliarityPairsViewSet,
+    SubmissionSimilarityPairsViewSet,
     LongitudinalCheatingGroupsViewSet,
     LongitudinalCheatingGroupMembersViewSet,
     LongitudinalCheatingGroupInstancesViewSet,
@@ -32,7 +32,7 @@ router.register(
 )
 router.register(
     r"submission-similarity-pairs",
-    SubmissionSimiliarityPairsViewSet,
+    SubmissionSimilarityPairsViewSet,
     basename="submission-similarity-pairs",
 )
 router.register(

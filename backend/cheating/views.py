@@ -9,7 +9,7 @@ from .models import (
     CheatingGroupMembers,
     ConfirmedCheaters,
     FlaggedStudents,
-    SubmissionSimiliarityPairs,
+    SubmissionSimilarityPairs,
     LongitudinalCheatingGroups,
     LongitudinalCheatingGroupMembers,
     LongitudinalCheatingGroupInstances,
@@ -19,7 +19,7 @@ from .serializers import (
     CheatingGroupMembersSerializer,
     ConfirmedCheatersSerializer,
     FlaggedStudentsSerializer,
-    SubmissionSimiliarityPairsSerializer,
+    SubmissionSimilarityPairsSerializer,
     LongitudinalCheatingGroupsSerializer,
     LongitudinalCheatingGroupMembersSerializer,
     LongitudinalCheatingGroupInstancesSerializer,
@@ -99,11 +99,11 @@ class FlaggedStudentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     ]
 
 
-class SubmissionSimiliarityPairsViewSet(viewsets.ModelViewSet, CachedViewMixin):
-    """ViewSet for handling SubmissionSimiliarityPairs entries."""
+class SubmissionSimilarityPairsViewSet(viewsets.ModelViewSet, CachedViewMixin):
+    """ViewSet for handling SubmissionSimilarityPairs entries."""
 
-    queryset = SubmissionSimiliarityPairs.objects.all()
-    serializer_class = SubmissionSimiliarityPairsSerializer
+    queryset = SubmissionSimilarityPairs.objects.all()
+    serializer_class = SubmissionSimilarityPairsSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [
         DjangoFilterBackend,
