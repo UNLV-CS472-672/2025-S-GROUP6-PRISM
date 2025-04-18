@@ -224,7 +224,7 @@ logging.Formatter.converter = time.localtime
 
 def main() -> None:
     """
-    main: Entry point for the database population script.
+    main: Run the database population script.
 
     Configures Pandas display settings for debugging and visualization,
     then initiates the database build process.
