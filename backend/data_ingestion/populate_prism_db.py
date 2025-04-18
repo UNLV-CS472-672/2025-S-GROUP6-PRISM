@@ -1,4 +1,5 @@
-"""
+"""lint is dumb.
+
 ooooooooo.   ooooooooo.   ooooo  .oooooo..o ooo        ooooo
 `888   `Y88. `888   `Y88. `888' d8P'    `Y8 `88.       .888'
  888   .d88'  888   .d88'  888  Y88bo.       888b     d'888
@@ -7,8 +8,8 @@ ooooooooo.   ooooooooo.   ooooo  .oooooo..o ooo        ooooo
  888          888  `88b.   888  oo     .d8P  8    Y     888
 o888o        o888o  o888o o888o 8""88888P'  o8o        o888o
 
+Created by Jesse Ortega, Spring 2025, vers. 1.1
 populate_prism_db.py
-Created by Jesse Ortega, Spring 2025, vers. 1.0
 
 The purpose of this script is to populate the `prism_db` or `prism_db_dev` PostgreSQL
 databases with fabricated data for testing and development of the PRISM platform.
@@ -81,7 +82,7 @@ The following CSV files must exist in the BASE_PATH directory:
    Columns: name, subject, catalog_number, course_title, course_level
    Row count: 4
 
-3. course_instances.csv  
+3. course_instances.csv
    Description: Defines individual course sections, Canvas IDs, and term details
    Columns: section_number, canvas_course_id, course_name, year, term, session
    Row count: 20
@@ -126,36 +127,36 @@ BASE_PATH_PRISM = Path("/PRISM/data/")
 # Languages supported by MOSS. Referenced when converting strings retrieved from database
 # to their MOSS counterpart
 LANGUAGES = {
-    "C":"c",
-    "C++":"cc",
-    "java":"java",
-    "ml":"ml",
-    "ocaml":"ocaml",
-    "ruby":"ruby",
-    "pascal":"pascal",
-    "ada":"ada",
-    "lisp":"lisp",
-    "scheme":"scheme",
-    "haskell":"haskell",
-    "fortran":"fortran",
-    "ascii":"ascii",
-    "vhdl":"vhdl",
-    "perl":"perl",
-    "matlab":"matlab",
-    "python":"python",
-    "mips":"mips",
-    "prolog":"prolog",
-    "spice":"spice",
-    "vb":"vb",
-    "csharp":"csharp",
-    "modula2":"modula2",
-    "a8086":"a8086",
-    "javascript":"javascript",
-    "plsql":"plsql",
-    "verilog":"verilog",
-    "tcl":"tcl",
-    "hc12":"hc12",
-    "asm":"asm"
+    "C": "c",
+    "C++": "cc",
+    "java": "java",
+    "ml": "ml",
+    "ocaml": "ocaml",
+    "ruby": "ruby",
+    "pascal": "pascal",
+    "ada": "ada",
+    "lisp": "lisp",
+    "scheme": "scheme",
+    "haskell": "haskell",
+    "fortran": "fortran",
+    "ascii": "ascii",
+    "vhdl": "vhdl",
+    "perl": "perl",
+    "matlab": "matlab",
+    "python": "python",
+    "mips": "mips",
+    "prolog": "prolog",
+    "spice": "spice",
+    "vb": "vb",
+    "csharp": "csharp",
+    "modula2": "modula2",
+    "a8086": "a8086",
+    "javascript": "javascript",
+    "plsql": "plsql",
+    "verilog": "verilog",
+    "tcl": "tcl",
+    "hc12": "hc12",
+    "asm": "asm"
 }
 
 # Database tables within prism_db/prism_db_dev
@@ -174,13 +175,13 @@ DB_TABLES = [
     # "assignments_policyviolations",
     "assignments_requiredsubmissionfiles",
     "assignments_submissions",
-    
+
     # "auth_group",
     # "auth_group_permissions",
     # "auth_permission",
-    
+
     # "authtoken_token",
-    
+
     # "cheating_cheatinggroupmembers",
     # "cheating_cheatinggroups",
     # "cheating_confirmedcheaters",
@@ -189,7 +190,7 @@ DB_TABLES = [
     # "cheating_longitudinalcheatinggroupmembers",
     # "cheating_longitudinalcheatinggroups",
     "cheating_submissionsimilaritypairs",
-    
+
     "courses_coursecatalog",
     "courses_courseinstances",
     "courses_semester",
@@ -199,12 +200,12 @@ DB_TABLES = [
     "courses_students",
     "courses_teachingassistantenrollments",
     "courses_teachingassistants",
-    
+
     # "django_admin_log",
     # "django_content_type",
     # "django_migrations",
     # "django_session",
-    
+
     "users_user",
     # "users_user_groups",
     # "users_user_user_permissions",
@@ -219,6 +220,7 @@ logging.basicConfig(
 )
 
 logging.Formatter.converter = time.localtime
+
 
 def main() -> None:
     """
@@ -235,7 +237,6 @@ def main() -> None:
     -------
     None
     """
-
     # Show all columns when printing DataFrames
     pd.set_option("display.max_columns", None)
 
@@ -262,7 +263,6 @@ def build_database(FF: bool=False) -> None:
     -------
     None
     """
-
     assignments_dir = BASE_PATH_PRISM/"assignments"
     
     logging.info("Starting database population...")
@@ -373,7 +373,6 @@ def friendly_fire() -> None:
     -------
     None
     """
-
     try:
         with ENGINE.connect() as conn:
             for table_name in DB_TABLES:
@@ -1316,7 +1315,6 @@ def gen_path(row : pd.Series) -> Path:
     pathlib.Path
         Full path to where the contents of the ZIP file should be extracted.
     """
-
     try:
         dest_dir_path = BASE_PATH_PRISM/"assignments"
         return dest_dir_path/f"assignment_{row["assignment_id"]}"/"bulk_submission"/str(Path(row["path"]).stem).replace(" ", "_")
@@ -1647,7 +1645,6 @@ def clear_directory(directory: Path):
     -------
     None
     """
-
     try:
         for item in directory.iterdir():
             if item.is_dir():
