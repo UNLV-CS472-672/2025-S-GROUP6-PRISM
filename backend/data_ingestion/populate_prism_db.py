@@ -186,17 +186,16 @@ DB_TABLES = [
     # "cheating_longitudinalcheatinggroupinstances",
     # "cheating_longitudinalcheatinggroupmembers",
     # "cheating_longitudinalcheatinggroups",
-    "cheating_submissionsimiliaritypairs",
+    "cheating_submissionsimilaritypairs",
     
-    "courses_courseassignmentcollaboration",
     "courses_coursecatalog",
     "courses_courseinstances",
-    "courses_coursessemester",
+    "courses_semester",
     "courses_professorenrollments",
     "courses_professors",
     "courses_studentenrollments",
     "courses_students",
-    "courses_teachingassistantenrollment",
+    "courses_teachingassistantenrollments",
     "courses_teachingassistants",
     
     # "django_admin_log",
@@ -285,7 +284,7 @@ def build_database(FF: bool=False) -> None:
         populate_course_catalog()
         # read_course_catalog()
 
-        logging.info("Populating 'courses_coursessemester'...")
+        logging.info("Populating 'courses_semester'...")
         populate_courses_semester()
         # read_courses_semester()
 
@@ -293,17 +292,17 @@ def build_database(FF: bool=False) -> None:
         populate_course_instances()
         # read_course_instances()
 
-        logging.info("Populating 'courses_professorenrollments' and 'courses_teachingassistantenrollment'...")
+        logging.info("Populating 'courses_professorenrollments' and 'courses_teachingassistantenrollments'...")
         populate_professor_and_TAs_enrollment()
         # read_professors_and_TAs_enrollment()
 
         logging.info("Populating 'courses_students' or 'courses_studentenrollments' tables....")
         populate_course_student_and_enrollments()
-        read_course_student()
+        # read_course_student()
 
         logging.info("Populating 'assignments_assignments' table...")
         populate_assignments()
-        read_assignments()
+        # read_assignments()
 
         logging.info("Building filesystem structure, then populating 'assignments_bulksubmissions' and 'courses_courseassignmentcollaboration'...")
         populate_filesystem_and_bulk_submissions(write_files=True)
@@ -321,8 +320,8 @@ def build_database(FF: bool=False) -> None:
         logging.info("Populating 'assignments_submissions' table...")
         populate_submissions()
 
-        logging.info("Parsing MOSS reports and populating 'cheating_submissionsimiliaritypairs' table...")
-        parse_moss_populate_similiarities()
+        logging.info("Parsing MOSS reports and populating 'cheating_submissionsimilaritypairs' table...")
+        parse_moss_populate_similarities()
 
         logging.info("Database population completed successfully.")
 
@@ -671,7 +670,7 @@ def read_course_catalog(print_df: bool = False) -> pd.DataFrame:
 
 def populate_courses_semester() -> None:
     """
-    populate_courses_semester: Populates the 'courses_coursessemester' table with semester metadata.
+    populate_courses_semester: Populates the 'courses_semester' table with semester metadata.
 
     Loads data from 'courses_semester.csv' located at BASE_PATH, casts 
     relevant fields to appropriate types, and inserts the records into 
@@ -687,7 +686,7 @@ def populate_courses_semester() -> None:
 
     Affected Table
     --------------
-    - courses_coursessemester
+    - courses_semester
     """
     try:
         # Column names and types
@@ -702,17 +701,17 @@ def populate_courses_semester() -> None:
         df_semester[string_columns] = df_semester[string_columns].astype(str)
 
         # Append dataframe's contents to database table
-        df_semester.to_sql("courses_coursessemester", ENGINE, if_exists="append", index=False)
+        df_semester.to_sql("courses_semester", ENGINE, if_exists="append", index=False)
 
-        logging.info("Successfully populated 'courses_coursessemester' table.")
+        logging.info("Successfully populated 'courses_semester' table.")
         
     except Exception as e:
-        logging.exception("Failed to populate 'courses_coursessemester' table.")
+        logging.exception("Failed to populate 'courses_semester' table.")
         raise
     
 def read_courses_semester(print_df: bool = False) -> pd.DataFrame:
     """
-    read_courses_semester: Reads and returns the contents of the 'courses_coursessemester' table as a Pandas DataFrame.
+    read_courses_semester: Reads and returns the contents of the 'courses_semester' table as a Pandas DataFrame.
 
     Converts all columns to their appropriate types and optionally prints the DataFrame
     for inspection.
@@ -740,8 +739,8 @@ def read_courses_semester(print_df: bool = False) -> pd.DataFrame:
         smallint_columns = ["year"]
         string_columns = ["name", "term", "session"]
 
-        # Load courses_coursessemester table into a dataframe
-        df_semester = pd.read_sql("SELECT * FROM courses_coursessemester", ENGINE)
+        # Load courses_semester table into a dataframe
+        df_semester = pd.read_sql("SELECT * FROM courses_semester", ENGINE)
 
         # Alter column types
         df_semester[bigint_columns] = df_semester[bigint_columns].astype("int64")
@@ -755,7 +754,7 @@ def read_courses_semester(print_df: bool = False) -> pd.DataFrame:
         return df_semester
     
     except Exception as e:
-        logging.exception("Failed to read 'courses_coursessemester'")
+        logging.exception("Failed to read 'courses_semester'")
         raise
 
 def populate_course_instances() -> None:
@@ -846,7 +845,7 @@ def read_course_instances(print_df: bool = False) -> pd.DataFrame:
             - section_number (int32): Course section identifier
             - canvas_course_id (int64): Unique Canvas course ID
             - course_catalog_id (int64): Foreign key referencing 'courses_coursecatalog.id'
-            - semester_id (int64): Foreign key referencing 'courses_coursessemester.id'
+            - semester_id (int64): Foreign key referencing 'courses_semester.id'
             - professor_id (int64): Foreign key referencing 'courses_professors.id'
             - teaching_assistant_id (int64): Foreign key referencing 'courses_teachingassistants.id'
     """
@@ -874,7 +873,7 @@ def read_course_instances(print_df: bool = False) -> pd.DataFrame:
 
 def populate_professor_and_TAs_enrollment() -> None:
     """
-    populate_professor_and_TAs_enrollment(): Populates the 'courses_professorenrollments' and 'courses_teachingassistantenrollment' tables.
+    populate_professor_and_TAs_enrollment(): Populates the 'courses_professorenrollments' and 'courses_teachingassistantenrollments' tables.
 
     This function reads the 'courses_courseinstances' table, extracts the assigned 
     professor and teaching assistant IDs, and writes the enrollment relationships 
@@ -891,7 +890,7 @@ def populate_professor_and_TAs_enrollment() -> None:
     Affected Tables
     ---------------
     - courses_professorenrollments
-    - courses_teachingassistantenrollment
+    - courses_teachingassistantenrollments
 
     """
     try:
@@ -903,18 +902,18 @@ def populate_professor_and_TAs_enrollment() -> None:
 
         # Append each dataframe's contents to their respective tables in the database
         df_enrollments[["course_instance_id", "professor_id"]].to_sql("courses_professorenrollments", ENGINE, if_exists="append", index=False)
-        df_enrollments[["course_instance_id", "teaching_assistant_id"]].to_sql("courses_teachingassistantenrollment", ENGINE, if_exists="append", index=False)
+        df_enrollments[["course_instance_id", "teaching_assistant_id"]].to_sql("courses_teachingassistantenrollments", ENGINE, if_exists="append", index=False)
     
-        logging.info("Successfully populated 'courses_professorenrollments' and 'courses_teachingassistantenrollment' tables.")
+        logging.info("Successfully populated 'courses_professorenrollments' and 'courses_teachingassistantenrollments' tables.")
         
     except Exception as e:
-        logging.exception("Failed to populate 'courses_professorenrollments' and 'courses_teachingassistantenrollment' tables.")
+        logging.exception("Failed to populate 'courses_professorenrollments' and 'courses_teachingassistantenrollments' tables.")
         raise
 
 def read_professors_and_TAs_enrollment(print_df: bool = False) -> pd.DataFrame:
     """
     read_professors_and_TAs_enrollment: Reads and returns the contents of the 'courses_professorenrollments' and 
-    'courses_teachingassistantenrollment' tables as Pandas DataFrames.
+    'courses_teachingassistantenrollments' tables as Pandas DataFrames.
 
     Converts all columns to int64 for consistency and optionally prints 
     the DataFrames for inspection.
@@ -945,7 +944,7 @@ def read_professors_and_TAs_enrollment(print_df: bool = False) -> pd.DataFrame:
     try:
         # Load courses_professorsenrollments and courses_teachingassistantsenrollments into dataframes
         df_professors_enrollments = pd.read_sql("SELECT * FROM courses_professorenrollments", ENGINE)
-        df_TAs_enrollments = pd.read_sql("SELECT * FROM courses_teachingassistantenrollment", ENGINE)
+        df_TAs_enrollments = pd.read_sql("SELECT * FROM courses_teachingassistantenrollments", ENGINE)
 
         # Alter column data types
         df_professors_enrollments[df_professors_enrollments.columns] = df_professors_enrollments[df_professors_enrollments.columns].astype("int64")
@@ -959,7 +958,7 @@ def read_professors_and_TAs_enrollment(print_df: bool = False) -> pd.DataFrame:
         return df_professors_enrollments, df_TAs_enrollments
         
     except Exception as e:
-        logging.exception("Failed to read 'courses_professorenrollments' and 'courses_teachingassistantenrollment'")
+        logging.exception("Failed to read 'courses_professorenrollments' and 'courses_teachingassistantenrollments'")
         raise
 
 def populate_course_student_and_enrollments() -> None:
@@ -1149,13 +1148,6 @@ def populate_assignments() -> None:
             df_assignments[col] = pd.to_datetime(df_assignments[col], utc=True)
         df_assignments[smallint_columns] = df_assignments[smallint_columns].astype("int16")
         df_assignments[string_columns] = df_assignments[string_columns].astype(str)
-        
-        # Insert new column with default value
-        df_assignments["course_instance_id"] = pd.Series([-1] * len(df_assignments), dtype="int64")
-
-        # Popuate with dummy value to satify constraints
-        for iter in df_assignments.index:
-            df_assignments.loc[iter, "course_instance_id"] = 1 if iter < len(df_assignments) // 2 else 2
 
         # Read tables in dataframes
         df_semester = read_courses_semester()
@@ -1224,9 +1216,8 @@ def read_assignments(print_df: bool = False) -> pd.DataFrame:
 
         Columns:
             - id (int64): Primary key
-            - course_instance_id (int64): Foreign key referencing referencing 'courses_courseinstances.id'
             - course_catalog_id (int64): Foreign key referencing referencing 'courses_coursecatalog.id'
-            - semester_id (int64): Foreign key referencing referencing 'courses_coursessemester.id'
+            - semester_id (int64): Foreign key referencing referencing 'courses_semester.id'
             - assignment_number (int16): Numeric identifier for the assignment
             - title (str): Assignment title
             - due_date (datetime): Submission due date
@@ -1241,7 +1232,7 @@ def read_assignments(print_df: bool = False) -> pd.DataFrame:
     try:    
         # Column names and types
         boolean_columns = ["has_base_code", "has_policy"]
-        bigint_columns = ["id", "course_catalog_id", "course_instance_id", "semester_id"]
+        bigint_columns = ["id", "course_catalog_id", "semester_id"]
         date_columns = ["due_date", "lock_date"]
         smallint_columns = ["assignment_number"]
         string_columns = ["title", "pdf_filepath", "moss_report_directory_path", "bulk_ai_directory_path", "language"]
@@ -1459,10 +1450,6 @@ def populate_filesystem_and_bulk_submissions(write_files: bool = False) -> None:
         # Append dataframe's contents to database table
         df_bulksubmissions.to_sql("assignments_bulksubmissions", ENGINE, if_exists="append", index=False)
         logging.info("Successfully populated 'assignments_bulksubmissions' table.")
-
-        # Excluding the directory_path column, append dataframe's contents to database table
-        df_bulksubmissions.drop("directory_path", axis=1).to_sql("courses_courseassignmentcollaboration", ENGINE, if_exists="append", index=False)
-        logging.info("Successfully populated 'courses_courseassignmentcollaboration' table.")
     
     except Exception as e:
         logging.exception("Failed to populate 'assignments_bulksubmissions' or 'courses_courseassignmentcollaboration' tables.")
@@ -1511,48 +1498,6 @@ def read_bulksubmissions(print_df: bool = False) -> pd.DataFrame:
     
     except Exception as e:
         logging.exception("Failed to read 'assignments_bulksubmissions'")
-        raise
-
-def read_assignmentcollaborations(print_df: bool = False) -> pd.DataFrame:
-    """
-    read_assignmentcollaborations: Reads and returns the contents of the 'courses_courseassignmentcollaboration' table 
-    as a Pandas DataFrame.
-
-    Converts ID fields to int64 and optionally prints the DataFrame and its data types.
-
-    Parameters
-    ----------
-    print_df : bool, optional
-        If True, prints the loaded DataFrame and its data types. Default is False.
-
-    Returns
-    -------
-    pd.DataFrame
-        A DataFrame containing mappings between assignments and course instances.
-
-        Columns:
-            - id (int64): Primary key
-            - assignment_id (int64): Foreign key referencing 'assignments_assignments.id'
-            - course_instance_id (int64): Foreign key referencing 'courses_courseinstances.id'
-    """
-    try:
-        # Column names and types
-        bigint_columns = ["id", "assignment_id", "course_instance_id"]
-
-        # Load courses_courseassignmentcollaboration table into a dataframe
-        df_assignmentcollaborations = pd.read_sql("SELECT * FROM courses_courseassignmentcollaboration", ENGINE)
-
-        # Alter column types
-        df_assignmentcollaborations[bigint_columns] = df_assignmentcollaborations[bigint_columns].astype("int64")
-        
-        # Print dataframes
-        if print_df:
-            print(f"df_assignmentcollaborations:\n{df_assignmentcollaborations}\n{df_assignmentcollaborations.dtypes}")
-
-        return df_assignmentcollaborations
-    
-    except Exception as e:
-        logging.exception("Failed to read 'courses_courseassignmentcollaboration'")
         raise
     
 def populate_requiredsubmissionfiles() -> None:
@@ -2004,9 +1949,9 @@ def correct_file_paths(row: pd.Series) -> pd.Series:
         logging.exception("Failed to correct file paths")
         raise
 
-def parse_moss_populate_similiarities() -> None:
+def parse_moss_populate_similarities() -> None:
     """
-    Parses MOSS similarity reports and populates the 'cheating_submissionsimiliaritypairs' table.
+    Parses MOSS similarity reports and populates the 'cheating_submissionsimilaritypairs' table.
 
     For each assignment, this function:
       - Reads the MOSS HTML report
@@ -2025,7 +1970,7 @@ def parse_moss_populate_similiarities() -> None:
 
     Affected Table
     --------------
-    - cheating_submissionsimiliaritypairs
+    - cheating_submissionsimilaritypairs
     """
     try:
         df_assignments = read_assignments()
@@ -2036,41 +1981,41 @@ def parse_moss_populate_similiarities() -> None:
             assignment_id = df_assignments.loc[idx, "id"]
 
              # Load HTML table from MOSS report
-            df_similiarities = pd.read_html(df_assignments.loc[idx, "moss_report_directory_path"]/"index.html")[0].drop(columns=["Lines Matched"])
+            df_similarities = pd.read_html(df_assignments.loc[idx, "moss_report_directory_path"]/"index.html")[0].drop(columns=["Lines Matched"])
             
             # Convert path strings to Path objects
-            df_similiarities["File 1"] = df_similiarities["File 1"].apply(Path)
-            df_similiarities["File 2"] = df_similiarities["File 2"].apply(Path)
+            df_similarities["File 1"] = df_similarities["File 1"].apply(Path)
+            df_similarities["File 2"] = df_similarities["File 2"].apply(Path)
 
             # Extract percentage value from filenames
-            df_similiarities["percentage"] = df_similiarities.apply(isolate_percentage, axis=1)
+            df_similarities["percentage"] = df_similarities.apply(isolate_percentage, axis=1)
 
             # Normalize file paths (remove filename, keep directory only)
             # Reset index to serve as match_id
-            df_similiarities = df_similiarities.apply(correct_file_paths, axis=1).reset_index().rename(columns={"index":"match_id"})
+            df_similarities = df_similarities.apply(correct_file_paths, axis=1).reset_index().rename(columns={"index":"match_id"})
             
             # Add additional field
-            df_similiarities[["file_name", "assignment_id"]] = pd.DataFrame({"file_name" : ["main.cpp"] * len(df_similiarities), "assignment_id" : [assignment_id] * len(df_similiarities)})
-            df_similiarities[["File 1", "File 2"]] = df_similiarities[["File 1", "File 2"]].astype(str)
-            df_similiarities["percentage"] = df_similiarities["percentage"].astype("int32")
+            df_similarities[["file_name", "assignment_id"]] = pd.DataFrame({"file_name" : ["main.cpp"] * len(df_similarities), "assignment_id" : [assignment_id] * len(df_similarities)})
+            df_similarities[["File 1", "File 2"]] = df_similarities[["File 1", "File 2"]].astype(str)
+            df_similarities["percentage"] = df_similarities["percentage"].astype("int32")
 
             # Match File 1 and File 2 to student submission IDs
-            df_similiarities = df_similiarities.merge(df_submission, how="left", left_on=["assignment_id", "File 1"], right_on=["assignment_id", "file_path"]).drop(columns=["File 1", "file_path"]).rename(columns={"submission_id" : "submission_id_1"})
-            df_similiarities = df_similiarities.merge(df_submission, how="left", left_on=["assignment_id", "File 2"], right_on=["assignment_id", "file_path"]).drop(columns=["File 2", "file_path"]).rename(columns={"submission_id" : "submission_id_2"})
+            df_similarities = df_similarities.merge(df_submission, how="left", left_on=["assignment_id", "File 1"], right_on=["assignment_id", "file_path"]).drop(columns=["File 1", "file_path"]).rename(columns={"submission_id" : "submission_id_1"})
+            df_similarities = df_similarities.merge(df_submission, how="left", left_on=["assignment_id", "File 2"], right_on=["assignment_id", "file_path"]).drop(columns=["File 2", "file_path"]).rename(columns={"submission_id" : "submission_id_2"})
             
             # Remove duplicate
-            df_duplicates = df_similiarities[df_similiarities.duplicated(subset=["submission_id_1", "submission_id_2", "assignment_id"], keep=False)]
+            df_duplicates = df_similarities[df_similarities.duplicated(subset=["submission_id_1", "submission_id_2", "assignment_id"], keep=False)]
             df_keep = df_duplicates.groupby(["submission_id_1", "submission_id_2", "assignment_id"])["percentage"].idxmax()
-            df_similiarities.drop(df_duplicates[~df_duplicates.index.isin(df_keep)].index, axis=0, inplace=True)
+            df_similarities.drop(df_duplicates[~df_duplicates.index.isin(df_keep)].index, axis=0, inplace=True)
 
             # Append dataframe's contents to database table
-            df_similiarities.to_sql("cheating_submissionsimiliaritypairs", ENGINE, if_exists="append", index=False)
-            logging.info("Successfully appended dataframe to 'cheating_submissionsimiliaritypairs' table.")
+            df_similarities.to_sql("cheating_submissionsimilaritypairs", ENGINE, if_exists="append", index=False)
+            logging.info("Successfully appended dataframe to 'cheating_submissionsimilaritypairs' table.")
 
-        logging.info("Successfully populated 'cheating_submissionsimiliaritypairs' table.")
+        logging.info("Successfully populated 'cheating_submissionsimilaritypairs' table.")
 
     except Exception as e:
-        logging.exception("Failed to populate 'cheating_submissionsimiliaritypairs' table.")
+        logging.exception("Failed to populate 'cheating_submissionsimilaritypairs' table.")
         raise
 
 if __name__ == "__main__":
