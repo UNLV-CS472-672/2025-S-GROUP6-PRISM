@@ -224,7 +224,7 @@ logging.Formatter.converter = time.localtime
 
 def main() -> None:
     """
-    Entry point for the database population script.
+    main: Entry point for the database population script.
 
     Configures Pandas display settings for debugging and visualization,
     then initiates the database build process.
@@ -252,7 +252,7 @@ def main() -> None:
 
 def build_database(FF: bool = False) -> None:
     """
-    Driver function that populates the PRISM database with synthetic data for testing or development.
+    build_database: Driver function that populates the PRISM database with synthetic data for testing or development.
 
     Parameters
     ----------
@@ -334,7 +334,7 @@ def build_database(FF: bool = False) -> None:
 
 def flush_rows(table_name: str) -> None:
     """
-    Delete all rows from a given table and reset its primary key sequence.
+    flush_rows: Delete all rows from a given table and reset its primary key sequence.
 
     This function uses the TRUNCATE command with RESTART IDENTITY to remove all data
     from the specified table and reset its auto-incrementing primary key back to 1.
@@ -361,7 +361,7 @@ def flush_rows(table_name: str) -> None:
 
 def friendly_fire() -> None:
     """
-    Clears all fabricated data from key database tables to reset the state of the system.
+    friendly_fire: Clears all fabricated data from key database tables to reset the state of the system.
 
     This function is typically used before re-populating the database during testing
     or development. It truncates all relevant tables and resets their primary key
@@ -537,7 +537,7 @@ def populate_courses_professors_and_TAs() -> None:
 
 def read_professors_and_TAs(print_df: bool = False) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Reads and returns the contents of the 'courses_professors' and 'courses_teachingassistants' tables as Pandas DataFrames.
+    read_professors_and_TAs: Reads and returns the contents of the 'courses_professors' and 'courses_teachingassistants' tables as Pandas DataFrames.
 
     Converts all columns to int64 for consistency and optionally prints
     the DataFrames for inspection.
@@ -585,7 +585,7 @@ def read_professors_and_TAs(print_df: bool = False) -> Tuple[pd.DataFrame, pd.Da
 
 def populate_course_catalog() -> None:
     """
-    Populates the 'courses_coursecatalog' table with course metadata from CSV.
+    populate_course_catalog: Populates the 'courses_coursecatalog' table with course metadata from CSV.
 
     Loads data from 'course_catalog.csv' located at BASE_PATH,
     casts relevant fields to appropriate types, and inserts the
@@ -628,7 +628,7 @@ def populate_course_catalog() -> None:
 
 def read_course_catalog(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'courses_coursecatalog' table as a Pandas DataFrame.
+    read_course_catalog: Reads and returns the contents of the 'courses_coursecatalog' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types for consistency and optionally prints
     the DataFrame for inspection.
@@ -678,7 +678,7 @@ def read_course_catalog(print_df: bool = False) -> pd.DataFrame:
 
 def populate_courses_semester() -> None:
     """
-    Populates the 'courses_semester' table with semester metadata.
+    populate_courses_semester: Populates the 'courses_semester' table with semester metadata.
 
     Loads data from 'courses_semester.csv' located at BASE_PATH, casts
     relevant fields to appropriate types, and inserts the records into
@@ -720,7 +720,7 @@ def populate_courses_semester() -> None:
 
 def read_courses_semester(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'courses_semester' table as a Pandas DataFrame.
+    read_courses_semester: Reads and returns the contents of the 'courses_semester' table as a Pandas DataFrame.
 
     Converts all columns to their appropriate types and optionally prints the DataFrame
     for inspection.
@@ -769,7 +769,7 @@ def read_courses_semester(print_df: bool = False) -> pd.DataFrame:
 
 def populate_course_instances() -> None:
     """
-    Populates the 'courses_courseinstances' table with metadata for course sections.
+    populate_course_instances: Populates the 'courses_courseinstances' table with metadata for course sections.
 
     This function reads from 'course_instances.csv', resolves foreign key relationships
     for catalog, semester, professor, and teaching assistant assignments, and appends
@@ -836,7 +836,7 @@ def populate_course_instances() -> None:
 
 def read_course_instances(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'courses_courseinstances' table as a Pandas DataFrame.
+    read_course_instances: Reads and returns the contents of the 'courses_courseinstances' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types and optionally prints the DataFrame
     and its data types for inspection.
@@ -882,9 +882,10 @@ def read_course_instances(print_df: bool = False) -> pd.DataFrame:
         logging.exception("Failed to read 'courses_courseinstances'")
         raise
 
+
 def populate_professor_and_TAs_enrollment() -> None:
     """
-    Populates the 'courses_professorenrollments' and 'courses_teachingassistantenrollments' tables.
+    populate_professor_and_TAs_enrollment: Populates the 'courses_professorenrollments' and 'courses_teachingassistantenrollments' tables.
 
     This function reads the 'courses_courseinstances' table, extracts the assigned
     professor and teaching assistant IDs, and writes the enrollment relationships
@@ -972,6 +973,7 @@ def read_professors_and_TAs_enrollment(print_df: bool = False) -> pd.DataFrame:
         logging.exception("Failed to read 'courses_professorenrollments' and 'courses_teachingassistantenrollments'")
         raise
 
+
 def populate_course_student_and_enrollments() -> None:
     """
     populate_course_student_and_enrollments: Populates the 'courses_students' and 'courses_studentenrollments' tables.
@@ -1034,7 +1036,7 @@ def populate_course_student_and_enrollments() -> None:
 
 def read_course_student(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'courses_students' table as a Pandas DataFrame.
+    read_course_student: Reads and returns the contents of the 'courses_students' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types and optionally prints the DataFrame
     and its data types for inspection.
@@ -1083,7 +1085,7 @@ def read_course_student(print_df: bool = False) -> pd.DataFrame:
 
 def read_course_student_enrollments(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'courses_studentenrollments' table as a Pandas DataFrame.
+    read_course_student_enrollments: Reads and returns the contents of the 'courses_studentenrollments' table as a Pandas DataFrame.
 
     Converts all columns to int64 for consistency and optionally prints
     the DataFrame and its data types for inspection.
@@ -1123,7 +1125,7 @@ def read_course_student_enrollments(print_df: bool = False) -> pd.DataFrame:
 
 def populate_assignments() -> None:
     """
-    Populates the 'assignments_assignments' table and creates corresponding assignment directories, MOSS report folders, and placeholder PDF files.
+    populate_assignments: Populates the 'assignments_assignments' table and creates corresponding assignment directories, MOSS report folders, and placeholder PDF files.
 
     This function reads from 'assignments.csv', resolves foreign keys for
     semester and course catalog, generates file paths, creates directories,
@@ -1213,7 +1215,7 @@ def populate_assignments() -> None:
 
 def read_assignments(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'assignments_assignments' table as a Pandas DataFrame.
+    read_assignments: Reads and returns the contents of the 'assignments_assignments' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types and optionally prints the DataFrame
     and its data types for inspection.
@@ -1275,7 +1277,7 @@ def read_assignments(print_df: bool = False) -> pd.DataFrame:
 
 def parseFileName(input: str) -> list[str]:
     """
-    Parses a standardized assignment filename to extract metadata components.
+    parseFileName: Parses a standardized assignment filename to extract metadata components.
 
     Expected format:
         "SUBJECT CATALOG_NUMBER COURSE_SECTION - YEAR TERM - Assignment ASSIGNMENT_NUMBER"
@@ -1311,7 +1313,7 @@ def parseFileName(input: str) -> list[str]:
 
 def gen_path(row: pd.Series) -> Path:
     """
-    Generates the destination path for unzipped student submissions.
+    gen_path: Generates the destination path for unzipped student submissions.
 
     Constructs a standardized path using the assignment ID and the base name
     of the original ZIP file (with spaces replaced by underscores).
@@ -1342,7 +1344,7 @@ def gen_path(row: pd.Series) -> Path:
 
 def unzip_and_copy_bulk_assignment_files(row: pd.Series) -> None:
     """
-    Unzips and copies the contents of a bulk assignment ZIP file to its destination directory.
+    unzip_and_copy_bulk_assignment_files: Unzips and copies the contents of a bulk assignment ZIP file to its destination directory.
 
     Also copies the corresponding CSV metadata file (with .csv extension) and renames
     any extracted files to replace spaces with underscores for consistency.
@@ -1387,7 +1389,7 @@ def unzip_and_copy_bulk_assignment_files(row: pd.Series) -> None:
 
 def populate_filesystem_and_bulk_submissions(write_files: bool = False) -> None:
     """
-    Populates the 'assignments_bulksubmissions' and 'courses_courseassignmentcollaboration' tables.
+    populate_filesystem_and_bulk_submissions: Populates the 'assignments_bulksubmissions' and 'courses_courseassignmentcollaboration' tables.
 
     This function parses assignment ZIP filenames to extract metadata, joins it with existing
     database records to resolve foreign keys, generates destination directories, optionally
@@ -1475,7 +1477,7 @@ def populate_filesystem_and_bulk_submissions(write_files: bool = False) -> None:
 
 def read_bulksubmissions(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'assignments_bulksubmissions' table as a Pandas DataFrame.
+    read_bulksubmissions: Reads and returns the contents of the 'assignments_bulksubmissions' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types and optionally prints the DataFrame
     and its data types for inspection.
@@ -1521,7 +1523,7 @@ def read_bulksubmissions(print_df: bool = False) -> pd.DataFrame:
 
 def populate_requiredsubmissionfiles() -> None:
     """
-    Populates the 'assignments_requiredsubmissionfiles' table with expected filenames and thresholds.
+    populate_requiredsubmissionfiles: Populates the 'assignments_requiredsubmissionfiles' table with expected filenames and thresholds.
 
     For each assignment in the system, this function inserts a default required submission file
     (main.cpp) with a default similarity threshold of 60.00%.
@@ -1561,7 +1563,7 @@ def populate_requiredsubmissionfiles() -> None:
 
 def read_requiredsubmissionfiles(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'assignments_requiredsubmissionfiles' table as a Pandas DataFrame.
+    read_requiredsubmissionfiles: Reads and returns the contents of the 'assignments_requiredsubmissionfiles' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types and optionally prints the DataFrame
     and its data types for inspection.
@@ -1609,7 +1611,7 @@ def read_requiredsubmissionfiles(print_df: bool = False) -> pd.DataFrame:
 
 def read_basefiles(print_df: bool = False) -> pd.DataFrame:
     """
-    Reads and returns the contents of the 'assignments_basefiles' table as a Pandas DataFrame.
+    read_basefiles: Reads and returns the contents of the 'assignments_basefiles' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types and optionally prints the DataFrame
     and its data types for inspection.
@@ -1655,7 +1657,7 @@ def read_basefiles(print_df: bool = False) -> pd.DataFrame:
 
 def clear_directory(directory: Path):
     """
-    Deletes all contents (files and subdirectories) within the specified directory.
+    clear_directory: Deletes all contents (files and subdirectories) within the specified directory.
 
     Parameters
     ----------
@@ -1680,7 +1682,7 @@ def clear_directory(directory: Path):
 
 def generate_moss_reports() -> None:
     """
-    Generates MOSS similarity reports for all assignments in the database.
+    generate_moss_reports: Generates MOSS similarity reports for all assignments in the database.
 
     For each assignment, this function:
       - Constructs the appropriate MOSS command
@@ -1765,14 +1767,14 @@ def generate_moss_reports() -> None:
             logging.info("Executing moss command:")
             subprocess.run(moss_command, cwd=MOSS_WORKING_DIRECTORY)
 
-    except Exception :
+    except Exception:
         logging.exception("Failed to generate MOSS reports")
         raise
 
 
 def convert_and_update(row: str, base_path: Path) -> Path:
     """
-    Replaces spaces in a file path string and joins it with a base directory.
+    convert_and_update: Replace spaces in a file path string and join it with a base directory.
 
     Parameters
     ----------
@@ -1792,9 +1794,10 @@ def convert_and_update(row: str, base_path: Path) -> Path:
         logging.exception("Failed to convert and update path")
         raise
 
+
 def populate_submissions() -> None:
     """
-    Populates the 'assignments_submissions' table with student submission records.
+    populate_submissions: Populate the 'assignments_submissions' table with student submission records.
 
     For each assignment, this function:
       - Identifies corresponding bulk submission directories
@@ -1835,7 +1838,7 @@ def populate_submissions() -> None:
                     course_instance_id = bulk_dirs.loc[bulk_dirs["directory_path"] == str(path), "course_instance_id"].iloc[0]
 
                     # Load CodeGrade JSON metadata
-                    df_info = pd.read_json(path/".cg-info.json").reset_index().rename(columns={"user_ids": "codeGrade_id", "index": "file_path"})
+                    df_info = pd.read_json(path / ".cg-info.json").reset_index().rename(columns={"user_ids": "codeGrade_id", "index": "file_path"})
                     df_info["file_path"] = df_info["file_path"].apply(lambda row: convert_and_update(row, path))
 
                     # Load grades from accompanying CSV
@@ -1862,7 +1865,7 @@ def populate_submissions() -> None:
 
 def read_submissions(print_df: bool = False) -> None:
     """
-    Reads and returns the contents of the 'assignments_submissions' table as a Pandas DataFrame.
+    read_submissions: Read and return the contents of the 'assignments_submissions' table as a Pandas DataFrame.
 
     Converts all columns to appropriate types and optionally prints the DataFrame
     and its data types for inspection.
@@ -1919,7 +1922,7 @@ def read_submissions(print_df: bool = False) -> None:
 
 def isolate_percentage(row: pd.Series) -> int:
     """
-    Extracts and returns the greater of two percentage values embedded in the filenames of 'File 1' and 'File 2' columns.
+    isolate_percentage: Extracts and returns the greater of two percentage values embedded in the filenames of 'File 1' and 'File 2' columns.
 
     Assumes filenames follow a pattern like '/PRISM/data/assignments/assignment_1/bulk_submission/CS_135_1001_-_2024_Sprg_-_Assignment_0/6414_-_Jon_Powers/ (99%)', where 'XX'
     is the percentage to extract.
@@ -1948,7 +1951,7 @@ def isolate_percentage(row: pd.Series) -> int:
 
 def correct_file_paths(row: pd.Series) -> pd.Series:
     """
-    Modifies a row by replacing 'File 1' and 'File 2' with their parent directories.
+    correct_file_paths: Modify a row by replacing 'File 1' and 'File 2' with their parent directories.
 
     Intended for use with `DataFrame.apply(..., axis=1)`.
 
@@ -1970,9 +1973,10 @@ def correct_file_paths(row: pd.Series) -> pd.Series:
         logging.exception("Failed to correct file paths")
         raise
 
+
 def parse_moss_populate_similarities() -> None:
     """
-    Parse MOSS similarity reports and populate the cheating_submissionsimilaritypairs table.
+    parse_moss_populate_similarities: Parse MOSS similarity reports and populate the cheating_submissionsimilaritypairs table.
 
     For each assignment, this function:
       - Reads the MOSS HTML report
