@@ -20,14 +20,21 @@ import { SignInButton } from "@/components/AuthenticationMethod" // Use SignInBu
 import { useRouter } from "next/navigation"
 
 const LoginComponent: React.FC = () => {
+	// for routing purposes, should be at the top of all files
 	const router = useRouter()
+
+	// variables for html and testing
 	const [username, setUsername] = useState<string>("")
 	const [password, setPassword] = useState<string>("")
 	const [message, setMessage] = useState<{
 		type: "success" | "error"
 		text: string
 	} | null>(null)
-	// Hydrated statee added to handle mismatched rendering
+
+	// for loading states
+	const [loading, setLoading] = useState(false);
+
+	// Hydrated state added to handle mismatched rendering
 	const [hydrated, setHydrated] = useState(false)
 
 	useEffect(() => {
@@ -36,9 +43,22 @@ const LoginComponent: React.FC = () => {
 
 	if (!hydrated) return null // Prevents SSR mismatches
 
+	// handles the submition of the html form to offer interactivity
+	// this gets activated when the form is submitted when login is attempted
 	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+		// creates a non-cancelable event
 		event.preventDefault()
 
+		// Validate there's input
+		if (!username || !password) {
+			setMessage({ type: "error", text: "Username and password are required." });
+			return;
+		}
+
+		// sets loading status
+		setLoading(true);
+
+		// handles the form submission by fetching the api call for logging in
 		try {
 			const response = await fetch("http://localhost:8000/api/login", {
 				method: "POST",
@@ -47,14 +67,20 @@ const LoginComponent: React.FC = () => {
 				credentials: "include",
 			})
 
+			// await data response
 			const data = await response.json()
 
+			// if the response is good, route to dashboard. error out otherwise
 			if (response.ok) {
 				// console.log("Logged in:", data)
 				router.push("/dashboard")
+			} else {
+				setMessage({ type: "error", text: ` ${data.error}`});
 			}
 		} catch (err) {
-			console.error("Login error:", err)
+			setMessage({ type: "error", text: " Server error. Please try again."});
+		} finally {
+			setLoading(false);
 		}
 	}
 
@@ -86,7 +112,6 @@ const LoginComponent: React.FC = () => {
 						margin="normal"
 						value={username}
 						onChange={(e) => setUsername(e.target.value)}
-						required
 						InputLabelProps={{ shrink: true }}
 						inputProps={{ "aria-label": "Username" }}
 					/>
@@ -106,7 +131,6 @@ const LoginComponent: React.FC = () => {
 						margin="normal"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
-						required
 						InputLabelProps={{ shrink: true }}
 						inputProps={{ "aria-labelledby": "password-label" }}
 					/>
@@ -117,8 +141,14 @@ const LoginComponent: React.FC = () => {
 					>
 						Password
 					</label>
-					<Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-						Login
+					<Button
+						type="submit"
+						variant="contained"
+						fullWidth
+						sx={{ mt: 2 }}
+						disabled={loading}
+					>
+						{loading ? "Logging in..." : "Login"}
 					</Button>
 				</form>
 
