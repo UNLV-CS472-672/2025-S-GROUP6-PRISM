@@ -9,9 +9,12 @@ Data to extract:
 """
 
 import requests
+
 # import json
+import sys
 import os
 from dotenv import load_dotenv
+from bs4 import BeautifulSoup
 
 
 class Canvas_api:
@@ -26,6 +29,7 @@ class Canvas_api:
             "https://canvas.instructure.com/api/v1/courses/33430000000184699/"
         )
         self.__HEADERS = {"Authorization": "Bearer "}
+        self.id_head = "334300000"
 
         # Course data
         self.course = {}
@@ -48,6 +52,15 @@ class Canvas_api:
         load_dotenv()
         key = os.getenv("WC_API_KEY")
         self.__HEADERS["Authorization"] += str(key)
+
+    def mkdir(self, dir_path):
+        """Create a directory if it does not already exist."""
+        try:
+            os.makedirs(dir_path, exist_ok=True)
+        except Exception as e:
+            print(str(e), file=sys.stderr)
+            return False
+        return True
 
     def set_course(self):
         """Set the attribute .course to the json course for easy access."""
@@ -147,26 +160,79 @@ class Canvas_api:
         response = requests.get(url, headers=self.__HEADERS, params=PARAMS)
         self.__files = response.json()
 
+    def get_files(self):
+        """Print all assignments."""
+        print(self.__files)
+
+    def extract_file_ids(self, description_html):
+        """Extract the ids from the description."""
+        soup = BeautifulSoup(description_html, "html.parser")
+        ids = []
+        for a_tag in soup.find_all("a", href=True):
+            href = a_tag["href"]
+            if "/files/" in href:
+                id = href.split("/")[-1].split("?")[0].split("~")[1]
+                # If link is stored in the files section of the canvas course page
+                id = self.id_head + id
+                ids.append(id)
+        return ids
+
+    def get_file_via_id(self, id):
+        """Retrieve the file object from api using id we get from the description(of assignment)."""
+        PARAMS = {"per_page": 150}
+        url = self.COURSE_URL + "/files/" + id
+        response = requests.get(url, headers=self.__HEADERS, params=PARAMS)
+        return response.json()
+
+    def download_files(self, ids, path):
+        """Download the files from the extracted link urls."""
+        for id in ids:
+            file = self.get_file_via_id(id)
+            name = file["filename"]
+            url = file["url"]
+            filepath = os.path.join(path, name)
+
+            # Make the request with your Canvas token
+            response = requests.get(url, headers=self.__HEADERS)
+
+            if not self.mkdir(path):
+                return
+
+            if response.status_code == 200:
+                with open(filepath, "wb") as f:
+                    f.write(response.content)
+                print(f"Downloaded file with file ID: {name}")
+            else:
+                print(f"Failed to download: {url} (Status {response.status_code})")
+
 
 def main():
     """Set the object and call the references for testing."""
     canvas_data = Canvas_api()
     canvas_data.set_headers()
     canvas_data.set_prof()
-    # canvas_data.get_prof()
     canvas_data.set_stud()
-    # canvas_data.get_stud()
     canvas_data.set_users()
-    # canvas_data.get_users()
     assis = canvas_data.set_assi()
-    # canvas_data.get_assi()
     canvas_data.set_course()
-    # canvas_data.get_course()
-    # canvas_data.set_course_data()
-    # canvas_data.get_course_data()
+    canvas_data.set_course_data()
     canvas_data.set_files()
+    # Print all the attributes we set from the code above.
+    # canvas_data.get_prof()
+    # canvas_data.get_stud()
+    # canvas_data.get_users()
+    # canvas_data.get_assi()
+    # canvas_data.get_course()
+    # canvas_data.get_course_data()
     for assi in assis:
-        canvas_data.extract_file_links(assi["Desc"])
+        if not assi.get("attachment"):
+            filepath = os.path.join(
+                os.getcwd(), "canvas_attachments", f"{assi["name"]}"
+            )
+            # If there are no attachment attributes in given assignment
+            # then that means the links are in the description.
+            ids = canvas_data.extract_file_ids(assi["description"])
+            canvas_data.download_files(ids, filepath)
 
 
 if __name__ == "__main__":

@@ -5,13 +5,14 @@ submissions, flagged results, and confirmed cheating detections.
 """
 
 from django.db import models
+from django.db.models import Q, F
 
 
 class Assignments(models.Model):
     """
     Represents an assignment for a given course catalog and semester.
 
-    Includes assignment number, title, due date, language, directory paths,
+    Includes assignment number, title, due date, lock date, language, directory paths,
     and flags for base code and policy.
     """
 
@@ -26,6 +27,9 @@ class Assignments(models.Model):
     assignment_number = models.SmallIntegerField()
     title = models.TextField()
     due_date = models.DateField()
+    lock_date = models.DateTimeField(
+        blank=True, null=True, help_text="Date & time when submissions are locked."
+    )
     pdf_filepath = models.TextField(
         unique=True,
         blank=True,
@@ -41,6 +45,13 @@ class Assignments(models.Model):
         """Model metadata configuration."""
 
         unique_together = (("course_catalog", "semester", "assignment_number"),)
+        constraints = [
+            # because we don't want a due date before the lock date i created this constraint
+            models.CheckConstraint(
+                condition=Q(lock_date__isnull=True) | Q(lock_date__gte=F("due_date")),
+                name="lock_date_after_due_or_null",
+            ),
+        ]
 
     def __str__(self):
         """
