@@ -15,6 +15,7 @@ from .views import (
     LongitudinalCheatingGroupsViewSet,
     LongitudinalCheatingGroupMembersViewSet,
     LongitudinalCheatingGroupInstancesViewSet,
+    ExportPlagiarismReportView,
 )
 
 router = DefaultRouter()
@@ -53,4 +54,11 @@ router.register(
 
 urlpatterns = [
     path("", include(router.urls)),
+
+    # I think its better to put it here instead of router.register since its not tied to any one model
+    path(
+        "export-report/",
+        ExportPlagiarismReportView.as_view(),
+        name="export-plagiarism-report"
+    ),
 ]
