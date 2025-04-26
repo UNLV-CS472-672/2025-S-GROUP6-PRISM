@@ -256,7 +256,7 @@ class ExportPlagiarismReportView(APIView):
 
     def _export_pdf(self, rows, ci_id, asg_id):
         buf = io.BytesIO()
-        # doc and styles uses ReportLab
+        # doc and styles uses ReportLab stuff
         doc = SimpleDocTemplate(buf, pagesize=letter)
         styles = getSampleStyleSheet()
 
@@ -282,11 +282,18 @@ class ExportPlagiarismReportView(APIView):
             "Similarity"
         ]] + rows
 
+        # makes a table (reportlab) with the data we defined earlier
+        table = Table(data, repeatRows=1) # repeatRows puts header on next page if the table spills over there
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),  # Header row 
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),  # Grid lines for all cells
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), # Vertically center cell content
+        ]))
 
-        #finish thiss
-        # add a table varaible, and do .setStyle stuff.
-        # do store.append(table)?
-        # doc.build(story)
+        # add to the story (pdf)
+        story.append(table)
+        # this builds the pdf
+        doc.build(story)
 
         resp = HttpResponse(buf.getvalue(), content_type="application/pdf")
         ts = datetime.now().strftime("%Y%m%d_%H%M")
