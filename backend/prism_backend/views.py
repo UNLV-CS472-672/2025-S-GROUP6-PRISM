@@ -8,12 +8,7 @@ from .serializers import (
     GoogleAuthSerializer,
     LoginSerializer,
 )
-from .serializers import (
-    GoogleAuthSerializer,
-    LoginSerializer,
-)
 from dj_rest_auth.jwt_auth import set_jwt_cookies
-from dj_rest_auth.views import LoginView as DJLoginView
 from dj_rest_auth.views import LoginView as DJLoginView
 from rest_framework.views import APIView
 from rest_framework.request import Request
