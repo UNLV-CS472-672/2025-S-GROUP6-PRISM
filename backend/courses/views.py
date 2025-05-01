@@ -3,6 +3,8 @@
 from rest_framework import filters, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from prism_backend.mixins import CachedViewMixin
+from rest_framework.request import Request
+from rest_framework.request import Request
 
 from .models import (
     CourseCatalog,
@@ -50,6 +52,8 @@ class CourseInstancesViewSet(viewsets.ModelViewSet, CachedViewMixin):
     """ViewSet for handling CourseInstances entries."""
 
     queryset = CourseInstances.objects.all()
+    course_catalog = CourseCatalogSerializer()
+    course_catalog = CourseCatalogSerializer()
     serializer_class = CourseInstancesSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [
@@ -57,7 +61,8 @@ class CourseInstancesViewSet(viewsets.ModelViewSet, CachedViewMixin):
         filters.OrderingFilter,
         filters.SearchFilter,
     ]
-    filterset_fields = ["section_number", "canvas_course_id"]
+    filterset_fields = ["section_number", "canvas_course_id", "professor", "semester"]
+    filterset_fields = ["section_number", "canvas_course_id", "professor", "semester"]
     ordering_fields = ["section_number"]
     ordering = ["section_number"]
     search_fields = ["course_catalog__course_title"]
@@ -78,6 +83,68 @@ class SemesterViewSet(viewsets.ModelViewSet, CachedViewMixin):
     ordering_fields = ["year"]
     ordering = ["year"]
     search_fields = ["name", "term", "session"]
+
+    def get_queryset(self):
+        """
+        Returns semesters taught by a professor.
+
+        - If `semester_id` is provided, return that semester (only if taught by the professor).
+        - If not, return all semesters the professor has taught in.
+        """
+        queryset = super().get_queryset()
+        request = self.request
+        semester_id = request.query_params.get("semester_id")
+
+        # Determine professor ID from query param or authenticated user
+        professor_id = request.query_params.get("professor_id")
+        if not professor_id:
+            try:
+                professor_id = request.user.professors.id
+            except Professors.DoesNotExist:
+                return queryset.none()  # Not a professor
+
+        if not professor_id:
+            return queryset.none()  # No professor context
+
+        # If a specific semester ID is passed, return that one if linked to this professor
+        if semester_id:
+            return queryset.filter(
+                id=semester_id, courseinstances__professor__id=professor_id
+            ).distinct()
+
+        # Otherwise return all semesters the professor has taught in
+        return queryset.filter(courseinstances__professor__id=professor_id).distinct()
+
+    def get_queryset(self):
+        """
+        Returns semesters taught by a professor.
+
+        - If `semester_id` is provided, return that semester (only if taught by the professor).
+        - If not, return all semesters the professor has taught in.
+        """
+        queryset = super().get_queryset()
+        request = self.request
+        semester_id = request.query_params.get("semester_id")
+
+        # Determine professor ID from query param or authenticated user
+        professor_id = request.query_params.get("professor_id")
+        if not professor_id:
+            try:
+                professor_id = request.user.professors.id
+            except Professors.DoesNotExist:
+                return queryset.none()  # Not a professor
+
+        if not professor_id:
+            return queryset.none()  # No professor context
+
+        # If a specific semester ID is passed, return that one if linked to this professor
+        if semester_id:
+            return queryset.filter(
+                id=semester_id, courseinstances__professor__id=professor_id
+            ).distinct()
+
+        # Otherwise return all semesters the professor has taught in
+        return queryset.filter(courseinstances__professor__id=professor_id).distinct()
 
 
 class StudentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
@@ -112,6 +179,11 @@ class StudentEnrollmentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     ordering_fields = ["student"]
     ordering = ["student"]
     search_fields = []
+
+    def paginate_queryset(self, queryset):
+        if self.request.query_params.get("no_pagination", "").lower() == "true":
+            return None
+        return super().paginate_queryset(queryset)
 
 
 class ProfessorsViewSet(viewsets.ModelViewSet, CachedViewMixin):

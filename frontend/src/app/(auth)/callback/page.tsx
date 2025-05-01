@@ -26,10 +26,19 @@ export default function OAuthCallbackHandler() {
 					if (res.ok) {
 						router.push("/dashboard")
 					} else {
-						console.error("Django auth failed", data)
+						sessionStorage.setItem(
+							"loginError",
+							data?.non_field_errors?.[0] || "Authentication failed."
+						)
+						router.push("/login")
 					}
 				} catch (err) {
-					console.error("Error sending token to Django", err)
+					console.log(err)
+					sessionStorage.setItem(
+						"loginError",
+						"Unexpected error during authentication."
+					)
+					router.push("/login")
 				}
 			}
 

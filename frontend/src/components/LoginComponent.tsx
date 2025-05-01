@@ -30,16 +30,24 @@ const LoginComponent: React.FC = () => {
 		type: "success" | "error"
 		text: string
 	} | null>(null)
+	const { user, login } = useAuth()
 
-	// for loading states
-	const [loading, setLoading] = useState(false);
-
-	// Hydrated state added to handle mismatched rendering
+	// Hydrated statee added to handle mismatched rendering
 	const [hydrated, setHydrated] = useState(false)
 
 	useEffect(() => {
 		setHydrated(true)
+
+		const errorMessage = sessionStorage.getItem("loginError")
+		if (errorMessage) {
+			setMessage({ type: "error", text: errorMessage })
+			sessionStorage.removeItem("loginError")
+		}
 	}, [])
+
+	useEffect(() => {
+		if (hydrated && user?.isLoggedIn) router.push("/courses/")
+	})
 
 	if (!hydrated) return null // Prevents SSR mismatches
 
@@ -51,16 +59,13 @@ const LoginComponent: React.FC = () => {
 
 		// Validate there's input
 		if (!username || !password) {
-			setMessage({ type: "error", text: "Username and password are required." });
-			return;
+			setMessage({ type: "error", text: "Username and password are required." })
+			return
 		}
-
-		// sets loading status
-		setLoading(true);
 
 		// handles the form submission by fetching the api call for logging in
 		try {
-			const response = await fetch("http://localhost:8000/api/login", {
+			const response = await easyFetch("http://localhost:8000/api/login", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ username, password }),
@@ -72,15 +77,21 @@ const LoginComponent: React.FC = () => {
 
 			// if the response is good, route to dashboard. error out otherwise
 			if (response.ok) {
-				// console.log("Logged in:", data)
-				router.push("/dashboard")
+				login(data["user"])
+				router.push("/courses/")
 			} else {
-				setMessage({ type: "error", text: ` ${data.error}`});
+				setMessage({
+					type: "error",
+					text:
+						data?.non_field_errors?.[0] || "Login failed. Please try again.",
+				})
 			}
 		} catch (err) {
-			setMessage({ type: "error", text: " Server error. Please try again."});
-		} finally {
-			setLoading(false);
+			console.error("Login error:", err)
+			setMessage({
+				type: "error",
+				text: "Unexpected error. Please try again later.",
+			})
 		}
 	}
 
@@ -141,22 +152,18 @@ const LoginComponent: React.FC = () => {
 					>
 						Password
 					</label>
-					<Button
-						type="submit"
-						variant="contained"
-						fullWidth
-						sx={{ mt: 2 }}
-						disabled={loading}
-					>
-						{loading ? "Logging in..." : "Login"}
+					<Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+						Sign In
 					</Button>
 				</form>
 
 				{/* OR Divider */}
-				<Divider sx={{ width: "100%", my: 2 }}>OR</Divider>
+				<Divider sx={{ width: "100%", my: 2 }}></Divider>
 
 				{/* NextAuth Google Login Button */}
-				<SignInButton />
+				<Button variant="contained">
+					<SignInButton />
+				</Button>
 
 				{/* Display Messages */}
 				{message && (

@@ -146,7 +146,9 @@ class FlaggedStudentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
 class SubmissionSimilarityPairsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     """ViewSet for handling SubmissionSimilarityPairs entries."""
 
-    queryset = SubmissionSimilarityPairs.objects.all()
+    queryset = SubmissionSimilarityPairs.objects.select_related(
+        "submission_id_1", "submission_id_2", "assignment"
+    )
     serializer_class = SubmissionSimilarityPairsSerializer
     pagination_class = StandardResultsSetPagination
     filter_backends = [
@@ -154,7 +156,16 @@ class SubmissionSimilarityPairsViewSet(viewsets.ModelViewSet, CachedViewMixin):
         filters.OrderingFilter,
         filters.SearchFilter,
     ]
-    filterset_fields = ["assignment", "file_name", "match_id"]
+    filterset_fields = [
+        "assignment",
+        "file_name",
+        "match_id",
+        "submission_id_1__student_id",
+        "submission_id_2__student_id",
+        "submission_id_1__assignment_id",
+        "submission_id_1__assignment__course_catalog_id",
+        "submission_id_1__assignment__semester_id",
+    ]
     ordering_fields = ["percentage"]
     ordering = ["percentage"]
     search_fields = ["file_name", "assignment__title"]

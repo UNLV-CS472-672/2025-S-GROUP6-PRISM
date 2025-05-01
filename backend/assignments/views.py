@@ -36,7 +36,7 @@ class AssignmentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
 
     queryset = Assignments.objects.all()
     serializer_class = AssignmentsSerializer
-    pagination_class = StandardResultsSetPagination
+    # pagination_class = StandardResultsSetPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.OrderingFilter,
@@ -58,6 +58,17 @@ class AssignmentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
         "pdf_filepath",
         "moss_report_directory_path",
     ]
+
+    def get_queryset(self):
+        queryset = Assignments.objects.all()
+        course_id = self.request.query_params.get("course_id")
+
+        if course_id:
+            queryset = queryset.filter(
+                semester__courseinstances__id=course_id
+            ).distinct()
+
+        return queryset
 
 
 class SubmissionsViewSet(viewsets.ModelViewSet, CachedViewMixin):

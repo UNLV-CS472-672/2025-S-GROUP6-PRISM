@@ -31,6 +31,19 @@ const theme = createTheme({
 				},
 			},
 		},
+		MuiDivider: {
+			styleOverrides: {
+				root: {
+					variants: [
+						{
+							style: {
+								backgroundColor: "#cccccc",
+							},
+						},
+					],
+				},
+			},
+		},
 	},
 })
 
