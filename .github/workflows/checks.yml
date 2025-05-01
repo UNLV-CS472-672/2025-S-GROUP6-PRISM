@@ -116,7 +116,7 @@ jobs:
           cd backend
           python manage.py migrate
 
-      - name: Run Tests with Coverage
+      - name: Run Tests with Coverage & JUnit XML
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DEBUG: ${{ secrets.DEBUG }}
@@ -128,12 +128,16 @@ jobs:
         run: |
           cd backend
           coverage erase
-          pytest --cov=. --cov-report=term-missing --cov-report=html
+          pytest \
+            --cov=. \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --junitxml=reports/junit.xml
 
-      - name: Generate coverage XML
+      - name: Generate HTML coverage report (optional)
         run: |
           cd backend
-          coverage xml
+          coverage html
 
       - name: Upload Coverage HTML Report Artifact
         uses: actions/upload-artifact@v4
@@ -146,3 +150,9 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: backend/coverage.xml
+
+      - name: Upload JUnit Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-results
+          path: backend/reports/junit.xml
