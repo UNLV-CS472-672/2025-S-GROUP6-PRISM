@@ -33,10 +33,6 @@ class CourseCatalogSerializer(serializers.ModelSerializer):
 class CourseInstancesSerializer(serializers.ModelSerializer):
     """Serializer for the CourseInstances model."""
 
-    course_catalog = CourseCatalogSerializer()
-
-    course_catalog = CourseCatalogSerializer()
-
     class Meta:
         """Meta options for CourseInstancesSerializer.
 
@@ -81,8 +77,6 @@ class StudentsSerializer(serializers.ModelSerializer):
 
 class StudentEnrollmentsSerializer(serializers.ModelSerializer):
     """Serializer for the StudentEnrollments model."""
-
-    student = StudentsSerializer()
 
     class Meta:
         """Meta options for StudentEnrollmentsSerializer.

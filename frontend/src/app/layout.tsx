@@ -4,11 +4,6 @@ import CssBaseline from "@mui/material/CssBaseline"
 import theme from "../theme"
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript"
 import Providers from "@/components/Providers"
-import { CourseProvider } from "@/context/CourseContext"
-
-interface Props {
-	children: React.ReactNode
-}
 
 export default function RootLayout(props: { children: React.ReactNode }) {
 	return (
@@ -18,11 +13,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
 				<ThemeProvider theme={theme}>
 					{/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
 					<CssBaseline />
-					<Providers>
-						<CourseProvider>
-							<AppLayoutWrapper>{children}</AppLayoutWrapper>
-						</CourseProvider>
-					</Providers>
+					<Providers>{props.children}</Providers>
 				</ThemeProvider>
 			</body>
 		</html>

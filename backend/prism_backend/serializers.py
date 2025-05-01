@@ -62,13 +62,7 @@ class GoogleAuthSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Invalid Google token.")
 
             email = google_info["email"]
-
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                raise serializers.ValidationError(
-                    "No account exists for this Google user."
-                )
+            user = User.objects.get(email=email)
 
             refresh = RefreshToken.for_user(user)
             access_token = refresh.access_token

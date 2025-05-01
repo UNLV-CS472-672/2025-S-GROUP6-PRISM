@@ -2,301 +2,275 @@
 import Image from "next/image"
 import styles from "./page.module.css"
 import { useState, useEffect, useCallback } from "react"
-import {
-	FormControl,
-	InputLabel,
-	MenuItem,
-	Select,
-	Box,
-	Stack,
-	Typography,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableRow,
-	Autocomplete,
-	Button,
-	TextField,
-} from "@mui/material"
-import Dropdown from "@/components/Dropdown"
+import { FormControl, InputLabel, MenuItem, Select } from "@mui/material"
+import Dropdown from "../components/Dropdown"
+import Box from "@mui/material/Box"
+import Stack from "@mui/material/Stack"
+import Typography from "@mui/material/Typography"
+import Table from "@mui/material/Table"
+import TableBody from "@mui/material/TableBody"
+import TableCell from "@mui/material/TableCell"
+import TableContainer from "@mui/material/TableContainer"
+import TableHead from "@mui/material/TableHead"
+import TableRow from "@mui/material/TableRow"
 import Paper from "@mui/material/Paper"
 import { easyFetch } from "@/utils/fetchWrapper"
 import { RepeatOneSharp } from "@mui/icons-material"
-import { Course, CourseCatalog, CourseResponse } from "@/types/coursesTypes"
-import { useAuth } from "@/context/AuthContext"
-import { useCourseContext } from "@/context/CourseContext"
-import { GetCourses } from "@/controllers/courses"
-import { GetSemesters } from "@/controllers/semesters"
-import { Semester } from "@/types/semesterTypes"
-import { StudentEnrollments } from "@/types/studentTypes"
-import { GetStudents } from "@/controllers/students"
-import { SubmissionSimilarity } from "@/types/similarity"
-import { grey } from "@mui/material/colors"
-import { AssignmentResponse, AssignmentItem } from "@/types/assignmentTypes"
 
+const list = [
+	{ Label: "CS 301", id: 0 },
+	{ Label: "CS 405", id: 1 },
+	{ Label: "CS 477", id: 2 },
+]
+const cs301 = [
+	{ Label: "Alice", id: 0 },
+	{ Label: "Dave", id: 1 },
+	{ Label: "Johnny", id: 2 },
+]
+const cs405 = [
+	{ Label: "Marisa", id: 3 },
+	{ Label: "Bob", id: 4 },
+	{ Label: "Jimmy", id: 5 },
+]
+const cs477 = [
+	{ Label: "Jack", id: 6 },
+	{ Label: "Alex", id: 7 },
+	{ Label: "Dizzy", id: 8 },
+]
+const aliceAndJohnny = [
+	{ name: "Assignment 1", similarity: 21 },
+	{ name: "Assignment 2", similarity: 15 },
+]
+const aliceAndDave = [
+	{ name: "Assignment 1", similarity: 45 },
+	{ name: "Assignment 2", similarity: 41 },
+]
+const daveAndJohnny = [
+	{ name: "Assignment 1", similarity: 10 },
+	{ name: "Assignment 2", similarity: 31 },
+]
+const marisaAndJimmy = [
+	{ name: "Assignment 1", similarity: 44 },
+	{ name: "Assignment 2", similarity: 41 },
+	{ name: "Assignment 3", similarity: 42 },
+]
+const marisaAndBob = [
+	{ name: "Assignment 1", similarity: 21 },
+	{ name: "Assignment 2", similarity: 25 },
+	{ name: "Assignment 3", similarity: 21 },
+]
+const bobAndJimmy = [
+	{ name: "Assignment 1", similarity: 15 },
+	{ name: "Assignment 2", similarity: 12 },
+	{ name: "Assignment 3", similarity: 18 },
+]
+const jackAndAlex = [
+	{ name: "Fibbonacci", similarity: 12 },
+	{ name: "Dynamic Programming", similarity: 14 },
+	{ name: "Sorting Algorithms", similarity: 18 },
+]
+const jackAndDizzy = [
+	{ name: "Fibbonacci", similarity: 21 },
+	{ name: "Dynamic Programming", similarity: 10 },
+	{ name: "Sorting Algorithms", similarity: 15 },
+]
+const alexAndDizzy = [
+	{ name: "Fibbonacci", similarity: 15 },
+	{ name: "Dynamic Programming", similarity: 17 },
+	{ name: "Sorting Algorithms", similarity: 13 },
+]
 //todo: Just implement the text fields and button on page
 export default function StudentComparison() {
-	const { user } = useAuth()
-	const { semesterId } = useCourseContext()
-	const [courses, setCourses] = useState<Course[]>([])
-	const [courseId, setCourseId] = useState<number | null>(null)
-	const [semesters, setSemesters] = useState<Semester[]>([])
-	const [semId, setSemId] = useState<number | null>(null)
-	const [students, setStudents] = useState<StudentEnrollments[]>([])
-	const [assignments, setAssignments] = useState<AssignmentItem[]>([])
-	const [asID, setasID] = useState<number | null>(null)
+	const fetchAssignments = useCallback(async () => {
+		const response = await fetch(`http://localhost:8000/api/course/classes`, {
+			method: "get",
+		})
 
-	// Prepping the student comparison query
-	const [studentAID, setStudentAID] = useState<number | null>(null)
-	const [studentBID, setStudentBID] = useState<number | null>(null)
+		const data = await response.json()
 
-	// Similarity Scores
-	const [similarity, setSimilarity] = useState<SubmissionSimilarity[] | null>(
-		null
-	)
-
-	// Fetching semesters
-	useEffect(() => {
-		const fetchSemesters = async () => {
-			const data = await GetSemesters()
-			if ("results" in data) {
-				setSemesters(data.results)
-			} else {
-				console.error("Failed to load semesters: ", data)
-			}
+		if (response.ok) {
+			console.log("Fetched assignments:", data)
+			setSelectedClass(data)
 		}
-
-		fetchSemesters()
 	}, [])
 
-	useEffect(() => {
-		if (!(semId && user?.isLoggedIn)) return
-		console.log(semesterId)
-		const loadCourses = async () => {
-			const data = await GetCourses(
-				Number(semesterId),
-				Number(user?.professor_id)
-			)
-			if ("results" in data) {
-				setCourses(data.results)
-			} else {
-				console.error("Error fetching courses: ", data)
+	const fetchStudents = useCallback(async (classInstanceId: string) => {
+		const response = await fetch(
+			`http://localhost:8000/api/course/enrollments?class_instance${classInstanceId}`,
+			{
+				method: "get",
 			}
+		)
+
+		const data = await response.json()
+
+		if (response.status === 200) {
+			console.log("GOOD REQUEST")
+			setStudents(data)
 		}
+	}, [])
 
-		loadCourses()
-	}, [semId, user?.isLoggedIn])
+	//These are variables needed for work and their default values
+	const [selectedClass, setSelectedClass] = useState<any[]>([])
+	const [assignmentName, setAssignmentName] = useState("")
+	const [student, setStudents] = useState<any[]>([])
+	let studentList = [
+		{ Label: "null", id: -1 },
+		{ Label: "null2", id: -1 },
+	]
+	let isDisabled = true
+	let rows = [
+		{ name: "Please select", similarity: 0 },
+		{ name: "Different students", similarity: 0 },
+		{ name: "From same class", similarity: 0 },
+	]
+	let overall = 0
 
-	// Fetch assignments
-	useEffect(() => {
-		if (!courseId) return
-		const fetchAssignments = async () => {
-			try {
-				const queryParams = new URLSearchParams({
-					course_id: String(courseId),
-				})
+	//this if else HELL is meant for testing
+	// i dont know if react has switch case and dont want to waste time looking for it
+	// if (selectedClass == 0) {
+	// 	studentList = cs301
+	// 	isDisabled = false
+	// } else if (selectedClass == 1) {
+	// 	studentList = cs405
+	// 	isDisabled = false
+	// } else if (selectedClass == 2) {
+	// 	studentList = cs477
+	// 	isDisabled = false
+	// } else {
+	// 	isDisabled = true
+	// }
+	// if (
+	// 	(studentOne == 0 && studentTwo == 1) ||
+	// 	(studentOne == 1 && studentTwo == 0)
+	// ) {
+	// 	rows = aliceAndDave
+	// 	overall = 43
+	// } else if (
+	// 	(studentOne == 0 && studentTwo == 2) ||
+	// 	(studentOne == 2 && studentTwo == 0)
+	// ) {
+	// 	rows = aliceAndJohnny
+	// 	overall = 18
+	// } else if (
+	// 	(studentOne == 2 && studentTwo == 1) ||
+	// 	(studentOne == 1 && studentTwo == 2)
+	// ) {
+	// 	rows = daveAndJohnny
+	// 	overall = 20.5
+	// } else if (
+	// 	(studentOne == 3 && studentTwo == 4) ||
+	// 	(studentOne == 4 && studentTwo == 3)
+	// ) {
+	// 	rows = marisaAndBob
+	// 	overall = 22.333
+	// } else if (
+	// 	(studentOne == 3 && studentTwo == 5) ||
+	// 	(studentOne == 5 && studentTwo == 3)
+	// ) {
+	// 	rows = marisaAndJimmy
+	// 	overall = 42.333
+	// } else if (
+	// 	(studentOne == 4 && studentTwo == 5) ||
+	// 	(studentOne == 5 && studentTwo == 4)
+	// ) {
+	// 	rows = bobAndJimmy
+	// 	overall = 15
+	// } else if (
+	// 	(studentOne == 6 && studentTwo == 7) ||
+	// 	(studentOne == 7 && studentTwo == 6)
+	// ) {
+	// 	rows = jackAndAlex
+	// 	overall = 14.666
+	// } else if (
+	// 	(studentOne == 6 && studentTwo == 8) ||
+	// 	(studentOne == 8 && studentTwo == 6)
+	// ) {
+	// 	rows = jackAndDizzy
+	// 	overall = 15.333
+	// } else if (
+	// 	(studentOne == 7 && studentTwo == 8) ||
+	// 	(studentOne == 8 && studentTwo == 7)
+	// ) {
+	// 	rows = alexAndDizzy
+	// 	overall = 15
+	// }
 
-				const response = await easyFetch(
-					`http://localhost:8000/api/assignment/assignments/?${queryParams}`,
-					{
-						method: "get",
-					}
-				)
-
-				const data = await response.json()
-
-				if (response.ok) {
-					setAssignments(data)
-				}
-			} catch (error) {
-				console.error(error)
-			}
-		}
-
-		fetchAssignments()
-	}, [courseId])
-
-	useEffect(() => {
-		if (!courseId) return
-
-		const fetchStudents = async () => {
-			if (!courseId) return
-			const data = await GetStudents(Number(courseId), true)
-			if (Array.isArray(data)) {
-				setStudents(data)
-			} else {
-				console.error("Error fetching students.", data)
-			}
-		}
-
-		fetchStudents()
-	}, [courseId])
-
-	// Fetch student comparison
-	const fetchSimilarities = useCallback(async () => {
-		if (!studentAID || !studentBID) return
-		try {
-			const response = await easyFetch(
-				`http://localhost:8000/api/cheating/submission-similarity-pairs/?submission_id_1__student_id=${studentAID}`,
-				{
-					method: "GET",
-				}
-			)
-
-			const data = await response.json()
-
-			if (response.ok) {
-				console.log("Similarity results:", data.results)
-				setSimilarity(data.results)
-			}
-		} catch (e) {
-			console.error("Error fetching similarities:", e)
-		}
-	}, [studentAID, studentBID, asID])
-
+	//These are for input into our components to be able to extract values from them
+	// const handleClassSelect = (item: number | -1) => {
+	// 	setSelectedClass(item)
+	// }
+	// const handleStudentOne = (item: number | -1) => {
+	// 	setStudentOne(item)
+	// }
+	// const handleStudentTwo = (item: number | -1) => {
+	// 	setStudentTwo(item)
+	// }
+	// const handleButtonClick = () => {
+	// 	console.log(selectedClass)
+	// 	console.log(assignmentName)
+	// }
 	return (
 		//The TextField accepts and returns a string written by the user, The dropdown returns an id correlating to a specific
 		// class, and the button will handle submitting the data to the database
-		<Box
-			sx={(theme) => ({
-				backgroundColor: theme.palette.background.paper,
-				p: 2,
-				borderRadius: 1,
-			})}
-		>
-			<Stack
-				spacing={2}
-				sx={{ justifyContent: "center", alignItems: "center" }}
-			>
-				<FormControl fullWidth>
-					<InputLabel>Semester</InputLabel>
-					<Select
-						label="Semester"
-						value={semId ?? ""}
-						onChange={(e) => {
-							const id = Number(e.target.value)
-							setSemId(Number(e.target.value))
-							console.log("Select sem id: ", id)
-						}}
-					>
-						{semesters.map((sem) => (
-							<MenuItem key={sem.id} value={sem.id ?? ""}>
-								{sem.name}
-							</MenuItem>
-						))}
-					</Select>
-				</FormControl>
-				{/* Select Courses */}
-				<FormControl fullWidth disabled={!semId}>
-					<InputLabel>Courses</InputLabel>
-					<Select
-						label="Courses"
-						value={courseId ?? ""}
-						onChange={(e) => {
-							const id = Number(e.target.value)
-							setCourseId(Number(e.target.value))
-							console.log("Course id: ", id)
-						}}
-					>
-						{courses.map((course) => (
-							<MenuItem key={course.id} value={course.id ?? ""}>
-								{course.course_catalog.name}
-							</MenuItem>
-						))}
-					</Select>
-				</FormControl>
-				<FormControl fullWidth disabled={!semId && !courseId}>
-					<InputLabel>Assignment</InputLabel>
-					<Select
-						label="Assignment"
-						value={asID ?? ""}
-						onChange={(e) => {
-							const id = Number(e.target.value)
-							setasID(Number(e.target.value))
-							console.log("Assignment ID: ", id)
-						}}
-					>
-						{assignments.map((assignment) => (
-							<MenuItem key={assignment.id} value={assignment.id ?? ""}>
-								{assignment.title}
-							</MenuItem>
-						))}
-					</Select>
-				</FormControl>
-				<FormControl fullWidth disabled={!semId && !courseId}>
-					<InputLabel>Student</InputLabel>
-					<Select
-						label="Student"
-						value={studentAID ?? ""}
-						onChange={(e) => {
-							const id = Number(e.target.value)
-							setStudentAID(Number(e.target.value))
-							console.log("Student id: ", id)
-						}}
-					>
-						{students.map((student) => (
-							<MenuItem key={student.id} value={student.id ?? ""}>
-								{student.student.first_name} {student.student.last_name}
-							</MenuItem>
-						))}
-					</Select>
-				</FormControl>
-				<FormControl fullWidth disabled={!semId && !courseId}>
-					<InputLabel>Student</InputLabel>
-					<Select
-						label="Student"
-						value={studentBID ?? ""}
-						onChange={(e) => {
-							const id = Number(e.target.value)
-							setStudentBID(Number(e.target.value))
-							console.log("Student id: ", id)
-						}}
-					>
-						{students.map((student) => (
-							<MenuItem key={student.id} value={student.id ?? ""}>
-								{student.student.first_name} {student.student.last_name}
-							</MenuItem>
-						))}
-					</Select>
-				</FormControl>
-				<Button
-					variant="contained"
-					onClick={fetchSimilarities}
-					disabled={!asID || !studentAID || !studentBID}
+		<Stack spacing={1} sx={{ justifyContent: "center", alignItems: "center" }}>
+			<FormControl fullWidth>
+				<InputLabel id="demo-simple-select-label">Classes</InputLabel>
+				<Select
+					labelId="demo-simple-select-label"
+					id="demo-simple-select"
+					label="Age"
+					onOpen={fetchAssignments}
 				>
-					Query Similarities
-				</Button>
-				{similarity && (
-					<TableContainer sx={{ backgroundColor: grey[200] }}>
-						<Table
-							sx={{ width: 650, justifyContent: "center" }}
-							aria-label="simple table"
-						>
-							<TableHead>
-								<TableRow>
-									<TableCell>Student Name</TableCell>
-									<TableCell>Relative</TableCell>
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{similarity.map((sim: SubmissionSimilarity) => (
-									<TableRow key={sim.id}>
-										<TableCell>
-											{sim.submission_id_1.student.first_name}{" "}
-											{sim.submission_id_1.student.last_name} &amp;{" "}
-											{sim.submission_id_2.student.first_name}{" "}
-											{sim.submission_id_2.student.last_name}
-										</TableCell>
-										<TableCell>{sim.percentage}%</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</TableContainer>
-				)}
+					{selectedClass?.map((value, index) => (
+						<MenuItem key={index} value={value}>
+							{value["name"]}
+						</MenuItem>
+					))}
+				</Select>
+			</FormControl>
+			{/* <Dropdown isDisabled={false} items={list} dropdownLabel="Classes" /> */}
+			<Stack direction="row">
+				<Dropdown
+					isDisabled={isDisabled}
+					items={studentList}
+					dropdownLabel="Select Student"
+				/>
+				<Dropdown
+					isDisabled={isDisabled}
+					items={studentList}
+					dropdownLabel="Select a different student"
+				/>
 			</Stack>
-		</Box>
+			<Typography variant="h5" gutterBottom>
+				{"Overall - " + overall}
+			</Typography>
+			<TableContainer component={Paper}>
+				<Table
+					sx={{ width: 650, justifyContent: "center" }}
+					aria-label="simple table"
+				>
+					<TableHead>
+						<TableRow>
+							<TableCell>Student Name</TableCell>
+							<TableCell>Relative</TableCell>
+						</TableRow>
+					</TableHead>
+					<TableBody>
+						{rows.map((row) => (
+							<TableRow
+								key={row.name}
+								sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+							>
+								<TableCell component="th" scope="row">
+									{row.name}
+								</TableCell>
+								<TableCell>{row.similarity}</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</TableContainer>
+		</Stack>
 	)
 }
