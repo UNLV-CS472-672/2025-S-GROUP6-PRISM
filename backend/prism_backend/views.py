@@ -14,6 +14,7 @@ from .serializers import (
 )
 from dj_rest_auth.jwt_auth import set_jwt_cookies
 from dj_rest_auth.views import LoginView as DJLoginView
+from dj_rest_auth.views import LoginView as DJLoginView
 from rest_framework.views import APIView
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,7 +63,7 @@ class GoogleAuthView(APIView):
         return response
 
 
-class CustomLoginView(LoginView):
+class CustomLoginView(DJLoginView):
     """Custom login view with throttling.
 
     Extends the default LoginView to define a custom throttle scope.
