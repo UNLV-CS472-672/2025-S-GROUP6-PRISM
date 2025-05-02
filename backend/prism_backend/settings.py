@@ -177,32 +177,23 @@ CACHES = {
 
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'simple': {
-            'format': '[{levelname}] {name}: {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "INFO",
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'stream': sys.stdout,
-            'formatter': 'simple',
-        },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
     },
-    'loggers': {
-        # Catch module’s logs
-        'cheating.views': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        # Optionally the root logger too
-        '': {
-            'handlers': ['console'],
-            'level': 'WARNING',
+    "loggers": {
+        "cheating": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }

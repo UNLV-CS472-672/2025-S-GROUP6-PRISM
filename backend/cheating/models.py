@@ -512,3 +512,42 @@ class FlaggedStudentPair(models.Model):
         """Model metadata configuration."""
 
         unique_together = ("course_catalog", "semester", "student_a", "student_b")
+
+
+class StudentPairSimilarityStatistics(models.Model):
+    """Represents the similarity statistics between two students."""
+
+    course_catalog      = models.ForeignKey("courses.CourseCatalog", on_delete=models.CASCADE)
+    semester            = models.ForeignKey("courses.Semester", on_delete=models.CASCADE)
+    student_a           = models.ForeignKey("courses.Students", related_name="+", on_delete=models.CASCADE)
+    student_b           = models.ForeignKey("courses.Students", related_name="+", on_delete=models.CASCADE)
+
+    assignments_shared          = models.PositiveIntegerField()
+    flagged_count               = models.PositiveIntegerField(default=0, blank=True)
+
+    average_similarity_score    = models.FloatField()
+    median_similarity_score     = models.FloatField()
+    similarity_std_dev          = models.FloatField()
+    similarity_variance         = models.FloatField()
+    min_similarity_score        = models.FloatField()
+    max_similarity_score        = models.FloatField()
+
+    average_z_score             = models.FloatField()
+    median_z_score              = models.FloatField()
+    min_z_score                 = models.FloatField()
+    max_z_score                 = models.FloatField()
+
+    total_similarity            = models.FloatField()
+    total_z_score               = models.FloatField()
+
+    cluster_id                  = models.PositiveSmallIntegerField(null=True, blank=True)
+    pair_flagged                = models.BooleanField(default=False, blank=True)
+    ta_notes                    = models.TextField(blank=True)
+
+    updated_at                  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Model metadata configuration."""
+        unique_together = (
+            "course_catalog", "semester", "student_a", "student_b"
+        )
