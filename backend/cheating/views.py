@@ -3,6 +3,7 @@
 from django.db import connection
 import io
 import math
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from sklearn.cluster import KMeans
 from sklearn.discriminant_analysis import StandardScaler
@@ -12,7 +13,7 @@ from matplotlib import pyplot as plt
 import time
 import numpy as np
 from django.db import transaction
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
@@ -24,6 +25,11 @@ from matplotlib.patches import Circle
 from .services import (
     bulk_recompute_semester_profiles,
     run_kmeans_for_course_semester,
+)
+from .utils.data_analysis import (
+    get_all_similarity_pairs,
+    turn_pairs_to_dict,
+    compute_pairs_statistics,
 )
 from .services import generate_report as generate_report_service
 from django.views.decorators.http import require_GET
@@ -1076,3 +1082,92 @@ def run_full_pipeline(request, course_id, semester_id):
     total = time.time() - start_ts
     print(f"✅ [PIPELINE] Finished full pipeline in {total:.2f}s\n")
     return JsonResponse({"status": "success", "duration_s": total})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+logger = logging.getLogger(__name__)
+
+@require_GET
+def data_analytics_pipeline(
+    request: HttpRequest,
+    course_id: int,
+    semester_id: int,
+) -> JsonResponse:
+    """
+    Endpoint to trigger the full data analytics pipeline for a course and semester.
+
+    Steps:
+      1. Fetch all similarity pairs from the DB.
+      2. Turn them into an in-memory dict of student-pair → [(score, assignment), …].
+      3. Compute per-pair and population statistics (including z-scores).
+      4. Return everything as JSON, including timing.
+
+    Returns:
+        JsonResponse containing:
+          - pairs: Dict[Tuple[int,int], Dict[str, Any]]
+          - population: Dict[str, Any]
+          - duration_secs: float
+    """
+    start_ts = time.time()
+    logger.info(f"[PIPELINE] Starting for course={course_id}, semester={semester_id}")
+
+    # 1) Fetch raw pairs
+    raw_pairs = get_all_similarity_pairs(course_id, semester_id)
+    if not raw_pairs:
+        return JsonResponse(
+            {'error': 'No student pairs found for that course+semester.'},
+            status=404
+        )
+
+    # 2) Build in-memory dict
+    pairs_dict = turn_pairs_to_dict(raw_pairs)
+
+    # 3) Compute stats
+    per_pair_stats, population_stats = compute_pairs_statistics(pairs_dict)
+    if not per_pair_stats:
+        return JsonResponse(
+            {'error': 'No pair statistics computed for that course+semester.'},
+            status=404
+        )
+
+    duration = time.time() - start_ts
+    logger.info(
+        "[PIPELINE] Completed in %.2f sec — %d pairs; μ=%.2f; σ=%.2f",
+        duration,
+        population_stats['total_pairs'],
+        population_stats['population_mean'],
+        population_stats['population_standard_deviation'],
+    )
+
+    # necessary to convert the per_pair_stats dict into a list of dicts
+    # else JsonResponse will not serialize it properly
+    pairs_list = [
+        {
+        'student_id_1': a,
+        'student_id_2': b,
+        **stats
+        } for (a, b), stats in per_pair_stats.items()
+    ]
+
+    # 4) Respond
+    return JsonResponse({
+        'pairs': pairs_list,
+        'population': population_stats,
+        'duration_secs': round(duration, 3),
+    })
