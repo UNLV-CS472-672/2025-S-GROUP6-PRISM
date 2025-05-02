@@ -523,17 +523,22 @@ class StudentPairSimilarityStatistics(models.Model):
     student_b           = models.ForeignKey("courses.Students", related_name="+", on_delete=models.CASCADE)
 
     assignments_shared          = models.PositiveIntegerField()
-    flagged_count               = models.PositiveIntegerField(default=0, blank=True)
 
-    average_similarity_score    = models.FloatField()
+    # need per assignment z-scores to calculate
+    flagged_count               = models.PositiveIntegerField(default=0, blank=True, null=True)
+
+    mean_similarity_score       = models.FloatField()
     median_similarity_score     = models.FloatField()
     similarity_std_dev          = models.FloatField()
     similarity_variance         = models.FloatField()
     min_similarity_score        = models.FloatField()
     max_similarity_score        = models.FloatField()
 
-    average_z_score             = models.FloatField()
-    median_z_score              = models.FloatField()
+    mean_z_score                = models.FloatField()
+
+    # need per assignment z-scores to calculate
+    median_z_score              = models.FloatField(blank=True, null=True)
+
     min_z_score                 = models.FloatField()
     max_z_score                 = models.FloatField()
 
@@ -541,8 +546,8 @@ class StudentPairSimilarityStatistics(models.Model):
     total_z_score               = models.FloatField()
 
     cluster_id                  = models.PositiveSmallIntegerField(null=True, blank=True)
-    pair_flagged                = models.BooleanField(default=False, blank=True)
-    ta_notes                    = models.TextField(blank=True)
+    pair_flagged                = models.BooleanField(default=False)
+    ta_notes                    = models.TextField(blank=True, null=True)
 
     updated_at                  = models.DateTimeField(auto_now=True)
 

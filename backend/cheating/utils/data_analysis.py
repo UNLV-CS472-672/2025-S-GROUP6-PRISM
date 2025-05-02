@@ -2,7 +2,8 @@
 
 import logging
 import time
-from cheating.models import SubmissionSimilarityPairs
+from cheating.models import SubmissionSimilarityPairs, StudentPairSimilarityStatistics
+from courses.models import CourseCatalog, Semester, Students
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +253,8 @@ def compute_pairs_statistics(
         total_z_score = (total_similarity_score - total_assignments * mu) / population_standard_deviation
         statistics_dict[pair]['total_z_score'] = total_z_score
 
+    # for pair, scores in pairs_dict.items():
+
     return (statistics_dict, population_stat)
 
 
@@ -322,5 +325,48 @@ def populate_student_pair_stats(
         population_stats['population_median_similarity_score'],
         population_stats['population_median_z_score'],
     )
+
+    # populate here the model
+    catalog = CourseCatalog.objects.get(pk=course_id)
+    sem     = Semester.objects.get(pk=semester_id)
+
+    to_create = []
+    for (sid_a, sid_b), stats in per_pair_stats.items():
+        # build an instance, but don’t save yet
+        inst = StudentPairSimilarityStatistics(
+            course_catalog            = catalog,
+            semester                  = sem,
+            student_a                 = Students.objects.get(pk=sid_a),
+            student_b                 = Students.objects.get(pk=sid_b),
+
+            assignments_shared        = stats['total_assignments'],
+
+            mean_similarity_score     = stats['average_similarity_score'],
+            median_similarity_score   = stats['median_similarity_score'],
+            similarity_std_dev        = stats['sample_standard_deviation'],
+            similarity_variance       = stats['sample_variance'],
+            min_similarity_score      = stats['min_similarity_score'],
+            max_similarity_score      = stats['max_similarity_score'],
+
+            mean_z_score              = stats['mean_z_score'],
+            min_z_score               = stats['min_z_score'],
+            max_z_score               = stats['max_z_score'],
+
+            total_similarity          = stats['total_similarity_score'],
+            total_z_score             = stats['total_z_score'],
+
+            pair_flagged              = stats['flagged'],
+            # cluster_id, ta_notes, median_z_score, and flagged_count left blank for now
+        )
+        to_create.append(inst)
+
+    # wipe out any old rows for this course+semester (optional)
+    StudentPairSimilarityStatistics.objects.filter(
+        course_catalog=catalog,
+        semester=sem
+    ).delete()
+
+    # finally bulk‑insert
+    StudentPairSimilarityStatistics.objects.bulk_create(to_create, batch_size=1000)
 
     return per_pair_stats, population_stats
