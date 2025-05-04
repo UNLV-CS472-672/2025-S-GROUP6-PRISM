@@ -200,7 +200,7 @@ class ExportPlagiarismReportView(APIView):
         # get filters
         ci_id = request.query_params.get("course_instance")
         asg_id = request.query_params.get("assignment")
-        #TODO: should format be pdf?
+        # this sets the default to csv if the format isnt provided
         output_format = request.query_params.get("format", "csv").lower()
 
         qs = SubmissionSimiliarityPairs.objects.select_related(
