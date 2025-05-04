@@ -194,7 +194,7 @@ class ExportPlagiarismReportView(APIView):
       - ?assignment=<id>      (optional: limit to one assignment)
       - ?format=pdf|csv       (defaults to csv)
     """
-    
+
     permission_classes = [IsAuthenticated, IsProfessorOrAdmin]
 
     def get(self, request, format=None):
