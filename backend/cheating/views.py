@@ -197,13 +197,14 @@ class ExportPlagiarismReportView(APIView):
     permission_classes = [IsAuthenticated, IsProfessorOrAdmin]
 
     def get(self, request, format=None):
+        """Handle GET requests to export plagiarism report data in CSV or PDF format."""
         # get filters
         ci_id = request.query_params.get("course_instance")
         asg_id = request.query_params.get("assignment")
         # this sets the default to csv if the format isnt provided
         output_format = request.query_params.get("format", "csv").lower()
 
-        qs = SubmissionSimiliarityPairs.objects.select_related(
+        qs = SubmissionSimilarityPairs.objects.select_related(
             "assignment",
             "submission_id_1__student",
             "submission_id_2__student",
@@ -232,7 +233,6 @@ class ExportPlagiarismReportView(APIView):
         else:
             return self._export_csv(rows, ci_id, asg_id)
 
-    
     def _export_csv(self, rows, ci_id, asg_id):
         buf = io.StringIO()
         writer = csv.writer(buf)
@@ -283,11 +283,11 @@ class ExportPlagiarismReportView(APIView):
         ]] + rows
 
         # makes a table (reportlab) with the data we defined earlier
-        table = Table(data, repeatRows=1) # repeatRows puts header on next page if the table spills over there
+        table = Table(data, repeatRows=1)  # repeatRows puts header on next page if the table spills over there
         table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),  # Header row 
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),  # Header row
             ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),  # Grid lines for all cells
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), # Vertically center cell content
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),  # Vertically center cell content
         ]))
 
         # add to the story (pdf)
