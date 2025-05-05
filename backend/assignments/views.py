@@ -3,12 +3,16 @@
 from rest_framework import filters, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
 from prism_backend.mixins import CachedViewMixin
 from users.permissions import IsProfessorOrAdmin
-from django.db.models import Count, Max, Avg, F
+from django.db.models import Count, Max, Avg, F, Q
 from cheating.models import SubmissionSimilarityPairs
+from courses.models import CourseInstances
 
 from .models import (
     Assignments,
@@ -28,6 +32,7 @@ from .serializers import (
     ConstraintsSerializer,
     PolicyViolationsSerializer,
     RequiredSubmissionFilesSerializer,
+    AssignmentCreateSerializer,
 )
 
 
@@ -59,6 +64,54 @@ class AssignmentsViewSet(viewsets.ModelViewSet, CachedViewMixin):
         "moss_report_directory_path",
     ]
 
+    def get_serializer_class(self):
+        """Return the appropriate serializer class based on the action.
+
+        Uses AssignmentCreateSerializer for 'create' actions to handle
+        nested writes. Defaults to AssignmentsSerializer for all other actions.
+
+        Returns:
+            serializers.ModelSerializer: The serializer class to use.
+        """
+        if self.action == "create":
+            return AssignmentCreateSerializer
+        return AssignmentsSerializer
+
+    @action(detail=False, methods=["get"], url_path="get-assignments-by-course")
+    def get_assignments_by_course(self, request: Request) -> Response:
+        """Return all assignments for a given course instance ID.
+
+        Example: /assignments/get-assignments-by-course/?course=12
+        """
+        courseinstance_id = request.query_params.get("course")
+
+        if not courseinstance_id:
+            return Response(
+                {"detail": "'course' query parameter is required."},
+                status=400,
+            )
+
+        try:
+            course_instance = CourseInstances.objects.select_related(
+                "course_catalog", "semester"
+            ).get(id=courseinstance_id)
+        except CourseInstances.DoesNotExist:
+            return Response({"detail": "CourseInstance not found."}, status=404)
+
+        # Fetch assignments matching course catalog and semester
+        assignments = Assignments.objects.filter(
+            course_catalog=course_instance.course_catalog,
+            semester=course_instance.semester,
+        ).order_by("assignment_number")
+
+        page = self.paginate_queryset(assignments)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(assignments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class SubmissionsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     """ViewSet for handling Submissions."""
@@ -75,6 +128,48 @@ class SubmissionsViewSet(viewsets.ModelViewSet, CachedViewMixin):
     ordering_fields = ["grade", "created_at"]
     ordering = ["created_at"]
     search_fields = ["file_path"]
+
+    def get_queryset(self):
+        """Return submissions filtered by logical AND on query parameters.
+
+        Supports filtering by one or both semesters.
+
+        Example query:
+            /submissions/?student=382&asid=1&course=3&semester1=1&semester2=2
+
+        Returns:
+            QuerySet: A filtered Django QuerySet of Submissions.
+        """
+        queryset = Submissions.objects.select_related(
+            "assignment", "course_instance", "student"
+        ).all()
+
+        assignment_id = self.request.query_params.get("asid")
+        course_instance_id = self.request.query_params.get("course")
+        semester1 = self.request.query_params.get("semester")
+        semester2 = self.request.query_params.get("semester2")
+        student_id = self.request.query_params.get("student")
+
+        if assignment_id:
+            queryset = queryset.filter(assignment_id=assignment_id)
+
+        if course_instance_id:
+            queryset = queryset.filter(course_instance_id=course_instance_id)
+
+        if semester1 and semester2:
+            queryset = queryset.filter(
+                Q(assignment__semester_id=semester1)
+                | Q(assignment__semester_id=semester2)
+            )
+        elif semester1:
+            queryset = queryset.filter(assignment__semester_id=semester1)
+        elif semester2:
+            queryset = queryset.filter(assignment__semester_id=semester2)
+
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
+
+        return queryset
 
 
 class BaseFilesViewSet(viewsets.ModelViewSet, CachedViewMixin):
@@ -220,9 +315,7 @@ class AggregatedAssignmentDataView(APIView):
         # Flagged submissions per assignment (uses dynamic threshold)
         response_data["flagged_per_assignment"] = list(
             base_qs.filter(
-                percentage__gte=F(
-                    "assignment__requiredsubmissionfiles__similarity_threshold"
-                )
+                percentage__gte=F("assignment__required_files__similarity_threshold")
             )
             .values("assignment__title")
             .annotate(flagged_count=Count("id"))
@@ -238,9 +331,7 @@ class AggregatedAssignmentDataView(APIView):
         # Flagged submissions per professor
         response_data["flagged_by_professor"] = list(
             base_qs.filter(
-                percentage__gte=F(
-                    "assignment__requiredsubmissionfiles__similarity_threshold"
-                )
+                percentage__gte=F("assignment__required_files__similarity_threshold")
             )
             .values("submission_id_1__course_instance__professor__user__username")
             .annotate(flagged_count=Count("id"))

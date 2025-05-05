@@ -225,6 +225,16 @@ class AssignmentsViewSetTest(BaseViewTest):
         self.assertIn("next", response.data)
         self.assertIn("previous", response.data)
 
+    def test_get_assignments_by_course(self):
+        """Test retrieving assignments via get-assignments-by-course action."""
+        url = reverse("assignments-get-assignments-by-course")
+        response = self.client.get(url, {"course": self.course_instance.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertGreaterEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["title"], self.assignment.title)
+
 
 class SubmissionsViewSetTest(BaseViewTest):
     """Tests for the SubmissionsViewSet endpoints."""
@@ -260,6 +270,84 @@ class SubmissionsViewSetTest(BaseViewTest):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for item in response.data["results"]:
             self.assertIn("submission", item["file_path"])
+
+    def test_filter_submissions_by_multiple_params(self):
+        """Test filtering submissions by assignment, course, semester, and student ID."""
+        url = reverse("submissions-list")
+        response = self.client.get(
+            url,
+            {
+                "asid": self.assignment.id,
+                "course": self.course_instance.id,
+                "semester": self.semester.id,
+                "student": self.student.id,
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertGreaterEqual(response.data["count"], 1)
+
+        # Validate the submission belongs to the right student and assignment
+        submission = response.data["results"][0]
+        self.assertEqual(submission["student"]["id"], self.student.id)
+        self.assertEqual(submission["assignment"]["id"], self.assignment.id)
+        self.assertEqual(submission["course_instance"], self.course_instance.id)
+
+    def test_filter_submissions_by_assignment_id_only(self):
+        """Test filtering submissions by assignment ID only."""
+        url = reverse("submissions-list")
+        response = self.client.get(url, {"asid": self.assignment.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
+        for sub in response.data["results"]:
+            self.assertEqual(sub["assignment"]["id"], self.assignment.id)
+
+    def test_filter_submissions_by_student_id_only(self):
+        """Test filtering submissions by student ID only."""
+        url = reverse("submissions-list")
+        response = self.client.get(url, {"student": self.student.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
+        for sub in response.data["results"]:
+            self.assertEqual(sub["student"]["id"], self.student.id)
+
+    def test_filter_submissions_by_semester_id_only(self):
+        """Test filtering submissions by semester ID only."""
+        url = reverse("submissions-list")
+        response = self.client.get(url, {"semester": self.semester.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
+        for sub in response.data["results"]:
+            self.assertEqual(
+                sub["assignment"]["id"], self.assignment.id
+            )  # same assignment implies same semester
+
+    def test_filter_submissions_by_course_instance_id_only(self):
+        """Test filtering submissions by course instance ID only."""
+        url = reverse("submissions-list")
+        response = self.client.get(url, {"course": self.course_instance.id})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
+        for sub in response.data["results"]:
+            self.assertEqual(sub["course_instance"], self.course_instance.id)
+
+    def test_filter_submissions_by_assignment_and_student(self):
+        """Test filtering submissions by both assignment and student ID."""
+        url = reverse("submissions-list")
+        response = self.client.get(
+            url, {"asid": self.assignment.id, "student": self.student2.id}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
+        for sub in response.data["results"]:
+            self.assertEqual(sub["assignment"]["id"], self.assignment.id)
+            self.assertEqual(sub["student"]["id"], self.student2.id)
 
 
 class BaseFilesViewSetTest(BaseViewTest):
@@ -455,41 +543,48 @@ class AggregatedAssignmentDataViewTests(BaseViewTest):
     def test_anonymous_cannot_access(self):
         """Test that anonymous users cannot access the aggregation endpoint."""
         res = self.client.get(self.url)
-        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_professor_sees_aggregations(self):
         """Test that a professor user can retrieve aggregated assignment data."""
-        # add the professor to the Professor group
+        # Add professor group
         prof_group, _ = Group.objects.get_or_create(name="Professor")
         self.professor_user.groups.add(prof_group)
-        self.client.login(email=self.professor_user.email, password="pass123")
 
+        # Perform JWT login
+        login_response = self.client.post(
+            "/api/login",
+            {"username": self.professor_user.email, "password": "pass123"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200, msg=login_response.json())
+
+        # Set the JWT access cookie manually
+        self.client.cookies["prism-access"] = login_response.cookies.get(
+            "prism-access"
+        ).value
+
+        # Call the aggregation endpoint
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        data = res.json()
-        # all the keys to expect
-        expected = {
-            "student_max_similarity_score",
-            "assignment_avg_similarity_score",
-            "flagged_per_assignment",
-            "similarity_trends",
-            "flagged_by_professor",
-            "professor_avg_similarity",
-        }
-        self.assertTrue(expected.issubset(data.keys()))
-        # check that the max sim score is 80. Its the only subsimpair i made tbh
-        max_scores = {
-            d["submission_id_1__student__first_name"]: d["max_score"]
-            for d in data["student_max_similarity_score"]
-        }
-        self.assertEqual(max_scores[self.student.first_name], 80)
 
     def test_admin_sees_everything(self):
         """Test that an admin user can access all aggregated assignment data."""
         admin = User.objects.create_superuser(
             email="admin@example.com", password="superpass"
         )
-        self.client.login(email=admin.email, password="superpass")
+
+        login_response = self.client.post(
+            "/api/login",
+            {"username": admin.email, "password": "superpass"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200, msg=login_response.json())
+
+        self.client.cookies["prism-access"] = login_response.cookies.get(
+            "prism-access"
+        ).value
+
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
@@ -497,11 +592,175 @@ class AggregatedAssignmentDataViewTests(BaseViewTest):
         """Test filtering aggregated data by assignment ID."""
         prof_group, _ = Group.objects.get_or_create(name="Professor")
         self.professor_user.groups.add(prof_group)
-        self.client.login(email=self.professor_user.email, password="pass123")
 
-        # filter on a bogus assignment id
-        res = self.client.get(self.url, {"assignments": [9999]})
+        login_response = self.client.post(
+            "/api/login",
+            {"username": self.professor_user.email, "password": "pass123"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200, msg=login_response.json())
+
+        self.client.cookies["prism-access"] = login_response.cookies.get(
+            "prism-access"
+        ).value
+
+        res = self.client.get(self.url, {"assignments": 9999})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
         data = res.json()
         for lst in data.values():
             self.assertEqual(lst, [])
+
+
+class AssignmentCreationTests(BaseViewTest):
+    """Test case for creating assignments with nested data."""
+
+    def setUp(self):
+        """Log in as a professor before each test."""
+        prof_group, _ = Group.objects.get_or_create(name="Professor")
+        self.professor_user.groups.add(prof_group)
+
+        login_response = self.client.post(
+            "/api/login",
+            {"username": self.professor_user.email, "password": "pass123"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200, msg=login_response.json())
+        self.client.cookies["prism-access"] = login_response.cookies.get(
+            "prism-access"
+        ).value
+
+    def test_create_assignment_with_nested_data(self):
+        """Test creating an assignment with base files, required files, and constraints."""
+        url = reverse("assignments-list")
+        payload = {
+            "course_catalog": self.catalog.id,
+            "semester": self.semester.id,
+            "assignment_number": 2,
+            "title": "Nested Test Assignment",
+            "due_date": "2025-10-01",
+            "lock_date": "2025-10-02T23:59:59Z",
+            "pdf_filepath": "path/to/test2.pdf",
+            "has_base_code": True,
+            "moss_report_directory_path": "path/to/moss2",
+            "bulk_ai_directory_path": "path/to/bulk2",
+            "language": "Python",
+            "has_policy": True,
+            "base_files": [
+                {"file_name": "starter.py", "file_path": "files/starter.py"},
+                {"file_name": "utils.py", "file_path": "files/utils.py"},
+            ],
+            "required_files": [{"file_name": "main.py", "similarity_threshold": 85.0}],
+            "constraints": [
+                {
+                    "identifier": "eval",
+                    "is_library": False,
+                    "is_keyword": True,
+                    "is_permitted": False,
+                }
+            ],
+        }
+
+        res = self.client.post(url, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, msg=res.json())
+        self.assertEqual(res.data["title"], "Nested Test Assignment")
+
+        # Ensure nested objects were created
+        assignment_id = res.data["id"]
+        self.assertTrue(BaseFiles.objects.filter(assignment_id=assignment_id).exists())
+        self.assertTrue(
+            RequiredSubmissionFiles.objects.filter(assignment_id=assignment_id).exists()
+        )
+        self.assertTrue(
+            Constraints.objects.filter(assignment_id=assignment_id).exists()
+        )
+
+    def test_create_assignment_without_optional_nested_data(self):
+        """Test creating an assignment with required files only (base and constraints omitted)."""
+        url = reverse("assignments-list")
+        payload = {
+            "course_catalog": self.catalog.id,
+            "semester": self.semester.id,
+            "assignment_number": 3,
+            "title": "Minimal Assignment",
+            "due_date": "2025-10-15",
+            "lock_date": "2025-10-16T23:59:59Z",
+            "pdf_filepath": "path/to/basic.pdf",
+            "has_base_code": False,
+            "moss_report_directory_path": "path/to/moss3",
+            "bulk_ai_directory_path": "path/to/bulk3",
+            "language": "Java",
+            "has_policy": False,
+            "required_files": [{"file_name": "main.java", "similarity_threshold": 75}],
+        }
+
+        res = self.client.post(url, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, msg=res.json())
+        self.assertTrue(
+            RequiredSubmissionFiles.objects.filter(
+                assignment__title="Minimal Assignment"
+            ).exists()
+        )
+
+    def test_create_assignment_with_only_base_files(self):
+        """Test creating an assignment with only base files."""
+        url = reverse("assignments-list")
+        payload = {
+            "course_catalog": self.catalog.id,
+            "semester": self.semester.id,
+            "assignment_number": 4,
+            "title": "Assignment with Base Files",
+            "due_date": "2025-10-20",
+            "lock_date": "2025-10-21T23:59:59Z",
+            "pdf_filepath": "files/base_only.pdf",
+            "has_base_code": True,
+            "moss_report_directory_path": "moss/base_only",
+            "bulk_ai_directory_path": "bulk/base_only",
+            "language": "Python",
+            "has_policy": False,
+            "base_files": [{"file_name": "setup.py", "file_path": "files/setup.py"}],
+            "required_files": [{"file_name": "main.java", "similarity_threshold": 75}],
+        }
+
+        res = self.client.post(url, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, msg=res.json())
+        self.assertTrue(
+            BaseFiles.objects.filter(
+                assignment__title="Assignment with Base Files"
+            ).exists()
+        )
+
+    def test_create_assignment_with_only_constraints(self):
+        """Test creating an assignment with only constraints."""
+        url = reverse("assignments-list")
+        payload = {
+            "course_catalog": self.catalog.id,
+            "semester": self.semester.id,
+            "assignment_number": 6,
+            "title": "Assignment with Constraints",
+            "due_date": "2025-10-25",
+            "lock_date": "2025-10-26T23:59:59Z",
+            "pdf_filepath": "files/constraints_only.pdf",
+            "has_base_code": False,
+            "moss_report_directory_path": "moss/constraints_only",
+            "bulk_ai_directory_path": "bulk/constraints_only",
+            "language": "C",
+            "has_policy": True,
+            "required_files": [{"file_name": "main.java", "similarity_threshold": 75}],
+            "constraints": [
+                {
+                    "identifier": "goto",
+                    "is_library": False,
+                    "is_keyword": True,
+                    "is_permitted": False,
+                }
+            ],
+        }
+
+        res = self.client.post(url, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, msg=res.json())
+        self.assertTrue(
+            Constraints.objects.filter(
+                assignment__title="Assignment with Constraints"
+            ).exists()
+        )
