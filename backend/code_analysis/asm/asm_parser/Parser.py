@@ -8,6 +8,7 @@ which makes it harder to analyze code. All submissions in the database
 should be valid, so this file would not produce any errors. If there is
 any incomplete submission in the directory, then this class should be ignored.
 """
+
 from code_analysis.asm.asm_asl.DataDeclaration import DataDeclaration
 from code_analysis.asm.asm_asl.DataSize import DataSize
 from code_analysis.asm.asm_asl.Instruction import Instruction
@@ -17,8 +18,10 @@ from code_analysis.asm.asm_asl.UninitDeclaration import UninitDeclaration
 from code_analysis.asm.asm_token.Token import Token
 from code_analysis.asm.asm_token.TokenType import TokenType
 
+
 class Parser:
     """Create object to represent Parser."""
+
     __tokens = None
     __currPos = None
     __lookahead = None
@@ -27,50 +30,112 @@ class Parser:
         """Construct Parser object."""
         self.__tokens = tokens
         self.__currPos = 0
-        self.__lookahead:Token = tokens[0]
+        self.__lookahead: Token = tokens[0]
 
     def __consume(self):
         print(self.__lookahead.toString())
         self.__currPos += 1
         self.__lookahead = self.__tokens[self.__currPos]
 
-    def __match(self, expected:TokenType):
+    def __match(self, expected: TokenType):
         if self.__lookahead.getType() == expected:
             self.__consume()
             return True
         else:
             return False
 
-    def __peek(self, expected:TokenType):
+    def __peek(self, expected: TokenType):
         return self.__lookahead.getType() == expected
 
-    def __peekNext(self, expected:TokenType):
+    def __peekNext(self, expected: TokenType):
         if self.__currPos < len(self.__tokens) - 1:
             return self.__tokens[self.__currPos + 1].getType() == expected
         else:
             return False
 
     def __isRegister(self):
-        return self.__lookahead.getType() in [TokenType.RAX, TokenType.EAX, TokenType.AX, TokenType.AL,
-                                              TokenType.RBX, TokenType.EBX, TokenType.BX, TokenType.BL,
-                                              TokenType.RCX, TokenType.ECX, TokenType.CX, TokenType.CL,
-                                              TokenType.RDX, TokenType.EDX, TokenType.DX, TokenType.DL,
-                                              TokenType.RSI, TokenType.ESI, TokenType.SI, TokenType.SIL,
-                                              TokenType.RDI, TokenType.EDI, TokenType.DI, TokenType.DIL,
-                                              TokenType.RBP, TokenType.EBP, TokenType.BP, TokenType.BPL,
-                                              TokenType.RSP, TokenType.ESP, TokenType.SP, TokenType.SPL,
-                                              TokenType.R8, TokenType.R8D, TokenType.R8W, TokenType.R8B,
-                                              TokenType.R9, TokenType.R9D, TokenType.R9W, TokenType.R9B,
-                                              TokenType.R10, TokenType.R10D, TokenType.R10W, TokenType.R10B,
-                                              TokenType.R11, TokenType.R11D, TokenType.R11W, TokenType.R11B,
-                                              TokenType.R12, TokenType.R12D, TokenType.R12W, TokenType.R12B,
-                                              TokenType.R13, TokenType.R13D, TokenType.R13W, TokenType.R13B,
-                                              TokenType.R14, TokenType.R14D, TokenType.R14W, TokenType.R14B,
-                                              TokenType.R15, TokenType.R15D, TokenType.R15W, TokenType.R15B,
-                                              TokenType.XMM0, TokenType.XMM1, TokenType.XMM2, TokenType.XMM3,
-                                              TokenType.XMM4, TokenType.XMM5, TokenType.XMM6, TokenType.XMM7,
-                                              TokenType.XMM8, TokenType.XMM9, TokenType.XMM10, TokenType.XMM11,
-                                              TokenType.XMM12, TokenType.XMM13, TokenType.XMM14, TokenType.XMM15]
+        return self.__lookahead.getType() in [
+            TokenType.RAX,
+            TokenType.EAX,
+            TokenType.AX,
+            TokenType.AL,
+            TokenType.RBX,
+            TokenType.EBX,
+            TokenType.BX,
+            TokenType.BL,
+            TokenType.RCX,
+            TokenType.ECX,
+            TokenType.CX,
+            TokenType.CL,
+            TokenType.RDX,
+            TokenType.EDX,
+            TokenType.DX,
+            TokenType.DL,
+            TokenType.RSI,
+            TokenType.ESI,
+            TokenType.SI,
+            TokenType.SIL,
+            TokenType.RDI,
+            TokenType.EDI,
+            TokenType.DI,
+            TokenType.DIL,
+            TokenType.RBP,
+            TokenType.EBP,
+            TokenType.BP,
+            TokenType.BPL,
+            TokenType.RSP,
+            TokenType.ESP,
+            TokenType.SP,
+            TokenType.SPL,
+            TokenType.R8,
+            TokenType.R8D,
+            TokenType.R8W,
+            TokenType.R8B,
+            TokenType.R9,
+            TokenType.R9D,
+            TokenType.R9W,
+            TokenType.R9B,
+            TokenType.R10,
+            TokenType.R10D,
+            TokenType.R10W,
+            TokenType.R10B,
+            TokenType.R11,
+            TokenType.R11D,
+            TokenType.R11W,
+            TokenType.R11B,
+            TokenType.R12,
+            TokenType.R12D,
+            TokenType.R12W,
+            TokenType.R12B,
+            TokenType.R13,
+            TokenType.R13D,
+            TokenType.R13W,
+            TokenType.R13B,
+            TokenType.R14,
+            TokenType.R14D,
+            TokenType.R14W,
+            TokenType.R14B,
+            TokenType.R15,
+            TokenType.R15D,
+            TokenType.R15W,
+            TokenType.R15B,
+            TokenType.XMM0,
+            TokenType.XMM1,
+            TokenType.XMM2,
+            TokenType.XMM3,
+            TokenType.XMM4,
+            TokenType.XMM5,
+            TokenType.XMM6,
+            TokenType.XMM7,
+            TokenType.XMM8,
+            TokenType.XMM9,
+            TokenType.XMM10,
+            TokenType.XMM11,
+            TokenType.XMM12,
+            TokenType.XMM13,
+            TokenType.XMM14,
+            TokenType.XMM15,
+        ]
 
     # 1. <program> := <data>? <bss>? <text> ;
     def program(self):
@@ -83,7 +148,9 @@ class Parser:
             uninitLst = self.__bss()
         text = self.__text()
 
-        program = Program(startPos, self.__lookahead.getEndPos(), dataLst, uninitLst, text)
+        program = Program(
+            startPos, self.__lookahead.getEndPos(), dataLst, uninitLst, text
+        )
         program.toString()
 
     # 2. <data> := 'section' '.data' <decl>* ;
@@ -113,10 +180,12 @@ class Parser:
             value = list()
             size = None
             endPos = None
-            while (self.__peek(TokenType.DB)
-                   or self.__peek(TokenType.DW)
-                   or self.__peek(TokenType.DD)
-                   or self.__peek(TokenType.DQ)):
+            while (
+                self.__peek(TokenType.DB)
+                or self.__peek(TokenType.DW)
+                or self.__peek(TokenType.DD)
+                or self.__peek(TokenType.DQ)
+            ):
                 size = self.__lookahead.getLexeme()
                 if self.__peek(TokenType.DB):
                     self.__match(TokenType.DB)
@@ -131,7 +200,7 @@ class Parser:
                 value.append(self.__lookahead.getLexeme())
                 endPos = self.__lookahead.getEndPos()
                 self.__match(TokenType.NUM)
-                while (self.__match(TokenType.COMMA)):
+                while self.__match(TokenType.COMMA):
                     self.__match(TokenType.COMMA)
                     value.append(self.__lookahead.getLexeme())
                     endPos = self.__lookahead.getEndPos()
@@ -157,10 +226,12 @@ class Parser:
         size = None
         self.__match(TokenType.ID)
         endPos = None
-        while (self.__peek(TokenType.RESB)
-               or self.__peek(TokenType.RESW)
-               or self.__peek(TokenType.RESD)
-               or self.__peek(TokenType.RESQ)):
+        while (
+            self.__peek(TokenType.RESB)
+            or self.__peek(TokenType.RESW)
+            or self.__peek(TokenType.RESD)
+            or self.__peek(TokenType.RESQ)
+        ):
             size = self.__lookahead.getLexeme()
             if self.__peek(TokenType.RESB):
                 self.__match(TokenType.RESB)
@@ -176,7 +247,7 @@ class Parser:
             values.append(self.__lookahead.getLexeme())
             self.__match(TokenType.NUM)
             endPos = self.__lookahead.getEndPos()
-            while (self.__match(TokenType.COMMA)):
+            while self.__match(TokenType.COMMA):
                 self.__match(TokenType.COMMA)
                 values.append(self.__lookahead.getLexeme())
                 endPos = self.__lookahead.getEndPos()
@@ -225,12 +296,14 @@ class Parser:
         endPos = self.__lookahead.getEndPos()
         instr = self.__lookahead.getLexeme()
         self.__consume()
-        if (self.__isRegister()
-                or self.__peek(TokenType.BYTE)
-                or self.__peek(TokenType.WORD)
-                or self.__peek(TokenType.DWORD)
-                or self.__peek(TokenType.QWORD)):
-            info:Token = self.__instrInfo()
+        if (
+            self.__isRegister()
+            or self.__peek(TokenType.BYTE)
+            or self.__peek(TokenType.WORD)
+            or self.__peek(TokenType.DWORD)
+            or self.__peek(TokenType.QWORD)
+        ):
+            info: Token = self.__instrInfo()
             if info[len(info) - 1] is DataSize:
                 endPos = info[len(info) - 1].getEndPos()
             else:
@@ -242,24 +315,28 @@ class Parser:
     # 11. <instr_info> := <reg_keyword> | <data_size> ;
     def __instrInfo(self):
         lst = list()
-        while (self.__isRegister()
-               or self.__peek(TokenType.BYTE)
-               or self.__peek(TokenType.WORD)
-               or self.__peek(TokenType.DWORD)
-               or self.__peek(TokenType.QWORD)):
+        while (
+            self.__isRegister()
+            or self.__peek(TokenType.BYTE)
+            or self.__peek(TokenType.WORD)
+            or self.__peek(TokenType.DWORD)
+            or self.__peek(TokenType.QWORD)
+        ):
 
-            if (self.__peek(TokenType.BYTE)
-                    or self.__peek(TokenType.WORD)
-                    or self.__peek(TokenType.DWORD)
-                    or self.__peek(TokenType.QWORD)):
+            if (
+                self.__peek(TokenType.BYTE)
+                or self.__peek(TokenType.WORD)
+                or self.__peek(TokenType.DWORD)
+                or self.__peek(TokenType.QWORD)
+            ):
                 lst.append(self.__dataSize())
             else:
                 lst.append(self.__lookahead)
                 self.__consume()
 
-            if (self.__peek(TokenType.COMMA)):
+            if self.__peek(TokenType.COMMA):
                 self.__consume()
-                if (self.__peek(TokenType.NUM)):
+                if self.__peek(TokenType.NUM):
                     lst.append(self.__lookahead)
                     self.__consume()
             else:

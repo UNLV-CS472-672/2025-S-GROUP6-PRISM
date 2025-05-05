@@ -6,16 +6,18 @@ class contains the name of the variable, its size in terms
 of bytes, a list of its values, and if the data declaration
 represents a constant or not.
 """
+
 from code_analysis.asm.asm_asl.ASL import ASL
+
 
 class DataDeclaration(ASL):
     """Create object to represent Data Declaration."""
 
-    __name:str = None
-    __size:str = None
+    __name: str = None
+    __size: str = None
     __value = None
 
-    __isConstant:bool = None
+    __isConstant: bool = None
 
     def __init__(self, startPos, endPos, name, size, value, constant):
         """Construct DataDeclaration object."""

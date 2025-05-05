@@ -6,7 +6,9 @@ the Lexer. This currently includes all possible keywords and
 symbols found in both x86 and MIPS assembly programs as taught
 in CS 218.
 """
+
 from enum import Enum
+
 
 class TokenType(Enum):
     """Enumerate token types."""
@@ -438,6 +440,6 @@ class TokenType(Enum):
     RBRACK = "]"
     COLON = ":"
     PERCENT = "%"
-    SQUOTE = "\'"
-    DQUOTE = "\""
+    SQUOTE = "'"
+    DQUOTE = '"'
     DOLLAR = "$"

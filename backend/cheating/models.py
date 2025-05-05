@@ -512,3 +512,90 @@ class FlaggedStudentPair(models.Model):
         """Model metadata configuration."""
 
         unique_together = ("course_catalog", "semester", "student_a", "student_b")
+
+
+class StudentPairSimilarityStatistics(models.Model):
+    """Represents the similarity statistics between two students."""
+
+    course_catalog = models.ForeignKey(
+        "courses.CourseCatalog", on_delete=models.CASCADE
+    )
+    semester = models.ForeignKey("courses.Semester", on_delete=models.CASCADE)
+    student_a = models.ForeignKey(
+        "courses.Students", related_name="+", on_delete=models.CASCADE
+    )
+    student_b = models.ForeignKey(
+        "courses.Students", related_name="+", on_delete=models.CASCADE
+    )
+
+    assignments_shared = models.PositiveIntegerField()
+
+    # need per assignment z-scores to calculate
+    flagged_count = models.PositiveIntegerField(default=0, blank=True, null=True)
+
+    mean_similarity_score = models.FloatField()
+    median_similarity_score = models.FloatField()
+    similarity_std_dev = models.FloatField()
+    similarity_variance = models.FloatField()
+    min_similarity_score = models.FloatField()
+    max_similarity_score = models.FloatField()
+
+    mean_z_score = models.FloatField()
+
+    # need per assignment z-scores to calculate
+    median_z_score = models.FloatField(blank=True, null=True)
+
+    min_z_score = models.FloatField()
+    max_z_score = models.FloatField()
+
+    total_similarity = models.FloatField()
+    total_z_score = models.FloatField()
+
+    cluster_id = models.PositiveSmallIntegerField(null=True, blank=True)
+    pair_flagged = models.BooleanField(default=False)
+    ta_notes = models.TextField(blank=True, null=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Model metadata configuration."""
+
+        unique_together = ("course_catalog", "semester", "student_a", "student_b")
+
+
+class PopulationSimilarityStatistics(models.Model):
+    """
+    Represents the similarity statistics for a population of students.
+
+    This model captures the overall similarity statistics
+    for all students in a course and semester.
+    It is used to analyze the relationships between students
+    and to identify potential cheating behavior.
+    """
+
+    course_catalog = models.ForeignKey(
+        "courses.CourseCatalog", on_delete=models.CASCADE
+    )
+    semester = models.ForeignKey("courses.Semester", on_delete=models.CASCADE)
+
+    total_unique_pairs = models.PositiveIntegerField(default=0)
+    total_flagged_count = models.PositiveIntegerField(default=0, blank=True, null=True)
+
+    mean_similarity_score = models.FloatField()
+    median_similarity_score = models.FloatField()
+    similarity_std_dev = models.FloatField()
+    similarity_variance = models.FloatField()
+    min_similarity_score = models.FloatField(blank=True, null=True)
+    max_similarity_score = models.FloatField(blank=True, null=True)
+
+    mean_z_score = models.FloatField()
+    median_z_score = models.FloatField()
+    min_z_score = models.FloatField(blank=True, null=True)
+    max_z_score = models.FloatField(blank=True, null=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Model metadata configuration."""
+
+        unique_together = ("course_catalog", "semester")

@@ -192,7 +192,7 @@ class Command(BaseCommand):
 
                     # Lower similarity for all other pairs
                     for i, sA in enumerate(students):
-                        for sB in students[i + 1:]:
+                        for sB in students[i + 1 :]:
                             if a in cheat_assigns and sA in cheaters and sB in cheaters:
                                 # Already created above
                                 continue

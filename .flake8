@@ -1,6 +1,6 @@
 [flake8]
 max-line-length = 79
-extend-ignore = E501, W503, E302, D204, E303, E231
+extend-ignore = E501, W503, E302, D204, E303, E231, E203
 select = C,E,F,W,D
 exclude =
     venv,

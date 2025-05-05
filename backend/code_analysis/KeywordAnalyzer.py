@@ -9,6 +9,7 @@ and programming language being used. At the end of the script, a JSON
 file will be generated in this directory that can then be used by the
 front end.
 """
+
 import json
 import os
 import sys
@@ -16,9 +17,9 @@ import sys
 from code_analysis.asm.AsmAnalyzer import AsmAnalyzer
 from code_analysis.cpp.CppAnalyzer import CppAnalyzer
 
+
 class KeywordAnalyzer:
     """Create object to perform keyword analysis."""
-
 
     __words: set = None
     __course: str = None
@@ -33,12 +34,13 @@ class KeywordAnalyzer:
         self.__createOutputFile()
         self.__runAnalysis()
 
-    '''
+    """
         This method is responsible for opening the input file
         containing the banned keywords, storing them into the
         KeywordAnalyzer's words array, and also getting the
         assignment for which the keyword analysis will be done for
-    '''
+    """
+
     def __openAndValidateFile(self):
         # ERROR CHECK #1: Make sure the front end passed in the appropriate
         #                 file arguments to this script
@@ -59,22 +61,27 @@ class KeywordAnalyzer:
         self.__course = fileParts[0][2:]
         self.__assignment = fileParts[1][2:]
 
-        with open(sys.argv[1], 'r') as iFile:
+        with open(sys.argv[1], "r") as iFile:
             self.__words = set()
             for line in iFile.readlines():
-                self.__words.add(line.strip('\n'))
+                self.__words.add(line.strip("\n"))
 
     def __createOutputFile(self):
-        self.__jsonFile = open(f"{self.__course}_{self.__assignment}_Found_Words.json", "w")
+        self.__jsonFile = open(
+            f"{self.__course}_{self.__assignment}_Found_Words.json", "w"
+        )
 
-    '''
+    """
         This is the main method for KeywordAnalyzer. We will do a bulk analysis
         for every section by looking at student file located in each directory.
         Once this has been completed, we can then access a JSON file that will
         contain all the students who violated the rules for the assignment.
-    '''
+    """
+
     def __runAnalysis(self):
-        submissionDir = f"/PRISM/data/assignments/assignment_{self.__assignment}/bulk_submission"
+        submissionDir = (
+            f"/PRISM/data/assignments/assignment_{self.__assignment}/bulk_submission"
+        )
 
         for f in os.listdir(submissionDir):
             if not f.endswith(".csv"):
@@ -83,10 +90,14 @@ class KeywordAnalyzer:
                 students = dict()
 
                 if self.__course == "135":
-                    cpp = CppAnalyzer(self.__words, f"{submissionDir}/{f}", self.__assignment)
+                    cpp = CppAnalyzer(
+                        self.__words, f"{submissionDir}/{f}", self.__assignment
+                    )
                     students = cpp.generateAST()
                 elif self.__course == "218":
-                    asm = AsmAnalyzer(self.__words, f"{submissionDir}/{f}", self.__assignment)
+                    asm = AsmAnalyzer(
+                        self.__words, f"{submissionDir}/{f}", self.__assignment
+                    )
                     students = asm.tokenizeAssembly()
 
                 self.__sections[section] = students

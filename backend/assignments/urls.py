@@ -44,6 +44,6 @@ urlpatterns = [
     path(
         "aggregated-data/",
         AggregatedAssignmentDataView.as_view(),
-        name="aggregated-assignment-data"
+        name="aggregated-assignment-data",
     ),
 ]

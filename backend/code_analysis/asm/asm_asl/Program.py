@@ -6,10 +6,13 @@ contains all data declarations, uninit declarations, and
 all Instructions associated with the x86 program we are
 trying to parse.
 """
+
 from code_analysis.asm.asm_asl.ASL import ASL
+
 
 class Program(ASL):
     """Create object to represent x86 Program."""
+
     __init_data = None
     __uninit_data = None
     __code = None
