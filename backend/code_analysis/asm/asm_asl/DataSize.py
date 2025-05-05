@@ -5,11 +5,14 @@ This is a class representing an x86 data size. Currently,
 it is storing the size of the data followed by a list
 that contains the dereferencing expression.
 """
+
 from code_analysis.asm.asm_asl.ASL import ASL
+
 
 class DataSize(ASL):
     """Create object to represent DataSize."""
-    __size:str = None
+
+    __size: str = None
     __lst = None
 
     def __init__(self, startPos, endPos, size, lst):

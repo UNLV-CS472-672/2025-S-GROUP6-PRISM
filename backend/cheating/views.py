@@ -3,7 +3,9 @@
 from django.db import connection
 import io
 import math
-import logging
+from matplotlib.patches import Patch
+import scipy.stats as stats
+import matplotlib.patheffects as pe
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from sklearn.cluster import KMeans
 from sklearn.discriminant_analysis import StandardScaler
@@ -13,7 +15,7 @@ from matplotlib import pyplot as plt
 import time
 import numpy as np
 from django.db import transaction
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
@@ -28,6 +30,7 @@ from .services import (
 )
 from .utils.data_analysis import (
     populate_student_pair_stats,
+    run_pair_level_clustering,
 )
 from .services import generate_report as generate_report_service
 from django.views.decorators.http import require_GET
@@ -45,6 +48,7 @@ from .models import (
     AssignmentReport,
     StudentReport,
     StudentSemesterProfile,
+    StudentPairSimilarityStatistics,
 )
 
 from .serializers import (
@@ -742,226 +746,6 @@ def run_kmeans_for_pair_stats(
     return km_final
 
 
-@require_GET
-def kmeans_pairs_plot(request, course_id, semester_id):
-    """
-    Generate a 2D PCA scatter of submission-pair clusters using an 8-dim feature.
-
-    Feature vector. Steps:
-      1) Fetch all PairFlagStat rows (with students) in one query.
-      2) Build an 8-dim matrix per pair:
-         [ mean_z*|mean_z|,
-           max_z*|max_z|,
-           mean_similarity,
-           proportion*100,
-           student_label_sum,
-           flagged_count²,
-           total_similarity,
-           total_z_score ]
-      3) Standardize, then reduce to 2D via PCA.
-      4) Identify the “red” cluster by PC1 centroid. If too many points,
-         highlight only the single worst pair; otherwise show Low/Med/High.
-      5) Draw convex hulls or circles, annotate as needed.
-      6) Return the plot as a PNG HTTP response.
-    """
-    # 1) Load every pair stat with related students in one go
-    pairs = list(
-        PairFlagStat.objects.filter(
-            course_catalog_id=course_id,
-            semester_id=semester_id,
-        ).select_related("student_a", "student_b")
-    )
-    if not pairs:
-        raise Http404("No pair statistics found.")
-
-    # 1a) Build a student_id → cluster_label lookup in one query
-    profiles = StudentSemesterProfile.objects.filter(
-        course_catalog_id=course_id,
-        semester_id=semester_id,
-    ).only("student_id", "cluster_label")
-    label_map = {prof.student_id: (prof.cluster_label or 0) for prof in profiles}
-
-    # 2) Assemble the raw 8-dim feature matrix
-    X_raw = np.zeros((len(pairs), 8), dtype=float)
-    for idx, ps in enumerate(pairs):
-        # amplify z-scores by squaring with sign
-        X_raw[idx, 0] = ps.mean_z_score * abs(ps.mean_z_score)
-        X_raw[idx, 1] = ps.max_z_score * abs(ps.max_z_score)
-        # raw mean similarity and proportion of flagged comparisons
-        X_raw[idx, 2] = ps.mean_similarity
-        X_raw[idx, 3] = ps.proportion * 100.0
-        # link pair to combined student risk labels
-        X_raw[idx, 4] = label_map.get(ps.student_a_id, 0) + label_map.get(
-            ps.student_b_id, 0
-        )
-        # cumulative stats from PairFlagStat
-        X_raw[idx, 5] = ps.flagged_count**2
-        X_raw[idx, 6] = ps.total_similarity
-        X_raw[idx, 7] = ps.total_z_score
-
-    # 3) Standardize features to mean=0, std=1 for PCA
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X_raw)
-
-    # 3a) Reduce to 2D with PCA
-    pca = PCA(n_components=2, random_state=42)
-    coords = pca.fit_transform(X_scaled)
-    dim1, dim2 = coords[:, 0], coords[:, 1]
-    var1, var2 = pca.explained_variance_ratio_[:2] * 100
-
-    # 4) Identify the “red” cluster by highest PC1 centroid
-    labels = np.array([ps.kmeans_label for ps in pairs])
-    unique_labels = sorted(set(labels))
-    centroids = {cluster: dim1[labels == cluster].mean() for cluster in unique_labels}
-    red_label = max(centroids, key=centroids.get)
-    red_mask = labels == red_label
-    red_count = int(red_mask.sum())
-
-    # 5) Decide whether to highlight one worst pair or show clusters
-    red_threshold = 30
-    if red_count > red_threshold:
-        # too many reds → mark only the single worst composite score
-        composite_scores = X_raw[:, 0] + X_raw[:, 1] + X_raw[:, 3]
-        worst_idx = int(np.argmax(composite_scores))
-        highlight_mask = np.zeros_like(labels, dtype=bool)
-        highlight_mask[worst_idx] = True
-
-        low_mask = ~highlight_mask
-        med_mask = np.zeros_like(labels, dtype=bool)
-        high_mask = highlight_mask
-
-        low_count, med_count, high_count = (int(low_mask.sum()), 0, 1)
-        highlight_color = "gold"
-        highlight_label = "Outlier Candidate (n=1)"
-        show_names = False
-    else:
-        # normal Low/Med/High split
-        low_label = min(centroids, key=centroids.get)
-        med_labels = [lbl for lbl in unique_labels if lbl not in (low_label, red_label)]
-
-        low_mask = labels == low_label
-        med_mask = np.isin(labels, med_labels)
-        high_mask = red_mask
-
-        low_count = int(low_mask.sum())
-        med_count = int(med_mask.sum())
-        high_count = red_count
-
-        highlight_color = "darkred"
-        highlight_label = f"High Intensity (n={high_count})"
-        show_names = True
-
-    # 6) Prepare the figure and axes
-    fig = plt.figure(figsize=(14, 9))
-    ax = fig.add_axes([0.00, 0.04, 0.78, 0.96])
-
-    def plot_group(mask, color, marker, legend_text):
-        """Plot one cluster: scatter + hull or circle."""
-        xs, ys = dim1[mask], dim2[mask]
-        ax.scatter(
-            xs,
-            ys,
-            c=color,
-            marker=marker,
-            s=100,
-            edgecolor="k",
-            alpha=0.8,
-            label=legend_text,
-        )
-        points = list(zip(xs, ys))
-        if len(points) >= 3:
-            try:
-                hull = ConvexHull(points)
-                hx, hy = zip(*(points[i] for i in hull.vertices))
-                ax.fill(hx, hy, color=color, alpha=0.2)
-            except QhullError:
-                pass
-        elif points:
-            cx, cy = np.mean(xs), np.mean(ys)
-            radius = (np.hypot(xs - cx, ys - cy).max() if len(xs) > 1 else 0.5) * 1.5
-            ax.add_patch(Circle((cx, cy), radius=radius, color=color, alpha=0.2))
-
-    # 7) Draw Low, Medium (if any), and High/outlier clusters
-    plot_group(low_mask, "green", "o", f"Low Intensity (n={low_count})")
-    if med_mask.any():
-        plot_group(med_mask, "gold", "s", f"Medium Intensity (n={med_count})")
-    plot_group(high_mask, highlight_color, "^", highlight_label)
-
-    # 8) Annotate high cluster members if required
-    if show_names and high_count:
-        high_indices = np.where(high_mask)[0]
-        for idx_num, idx in enumerate(high_indices, start=1):
-            ax.annotate(
-                str(idx_num),
-                xy=(dim1[idx], dim2[idx]),
-                xytext=(4, 4),
-                textcoords="offset points",
-                fontsize=11,
-                fontweight="bold",
-                color=highlight_color,
-            )
-        sidebar_names = [
-            f"{pairs[idx].student_a.first_name} "
-            f"{pairs[idx].student_a.last_name} & "
-            f"{pairs[idx].student_b.first_name} "
-            f"{pairs[idx].student_b.last_name}"
-            for idx in high_indices
-        ]
-        y_start, y_end = 0.98, 0.04
-        step = (y_start - y_end) / (len(sidebar_names) + 1)
-        for line_num, text in enumerate(sidebar_names, start=1):
-            fig.text(
-                0.79,
-                y_start - line_num * step,
-                f"{line_num}: {text} "
-                f"(max_z={pairs[high_indices[line_num - 1]].max_z_score:.2f})",
-                transform=fig.transFigure,
-                va="top",
-                ha="left",
-                fontsize=11,
-                fontweight="bold",
-                color=highlight_color,
-                family="monospace",
-            )
-    elif not show_names:
-        fig.text(
-            0.79,
-            0.5,
-            "Not enough evidence of anomalies",
-            transform=fig.transFigure,
-            va="center",
-            ha="left",
-            fontsize=14,
-            fontstyle="italic",
-        )
-
-    # 9) Final styling: axes labels, title, grid, legend
-    ax.set_xlabel(f"Dimension 1 ({var1:.1f}% var)", fontsize=12)
-    ax.set_ylabel(f"Dimension 2 ({var2:.1f}% var)", fontsize=12)
-    course = get_object_or_404(CourseCatalog, pk=course_id)
-    sem = get_object_or_404(Semester, pk=semester_id)
-    ax.set_title(f"K-Means Clusters → {course} Pairs → {sem}", fontsize=16, pad=15)
-    ax.grid(True, linestyle=":", linewidth=0.5, alpha=0.7)
-    fig.subplots_adjust(bottom=0.06)
-    legend_cols = 2 if not med_mask.any() else 3
-    ax.legend(
-        loc="upper center",
-        bbox_to_anchor=(0.50, -0.18),
-        ncol=legend_cols,
-        title="Pair Groups",
-        frameon=True,
-        fontsize=11,
-        title_fontsize=13,
-    )
-
-    # 10) Render to PNG and return HTTP response
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    buffer.seek(0)
-    return HttpResponse(buffer.read(), content_type="image/png")
-
-
 def _generate_one(assignment_id):
     """
     Help for ThreadPoolExecutor: close the old DB connection.
@@ -973,40 +757,37 @@ def _generate_one(assignment_id):
 
 
 @require_GET
-def run_full_pipeline(request, course_id, semester_id):
+def run_full_pipeline(request, course_id: int, semester_id: int):
     """
-    0) Clear old AssignmentReport rows for this course+semester.
+    0) Clear old AssignmentReport rows.
 
     1) Clear old PairFlagStat rows.
-    2) Parallel-generate each assignment report and collect flagged pairs.
-    3) Bulk-upsert PairFlagStat entries.
-    4) Clear and recompute StudentSemesterProfile.
-    5) Run student-level K-Means and capture the model.
-    6) Run pair-level K-Means using student labels.
+    2) Generate each assignment report in parallel.
+    3) Bulk-upsert flagged-pair stats.
+    4) Clear & rebuild StudentSemesterProfile.
+    5) Run student-level K-Means.
+    6) Run data-analytics pipeline (per-pair stats + pair-level K-Means).
     """
     start_ts = time.time()
     print(
-        f"\n🚀 [PIPELINE] Starting full pipeline "
-        f"for course={course_id}, semester={semester_id}"
+        f"\n🚀 [PIPELINE] Starting full pipeline for course={course_id}, semester={semester_id}"
     )
 
-    # 0) Remove every previous AssignmentReport (and its StudentReports)
-    #    so we always start fresh and never mix old data with new.
+    # 0) Drop old assignment reports
     AssignmentReport.objects.filter(
         assignment__course_catalog_id=course_id,
         assignment__semester_id=semester_id,
     ).delete()
     print("  🔄 Cleared old AssignmentReport rows")
 
-    # 1) Remove every previous PairFlagStat row for this course/semester,
-    #    so our later bulk-upsert won’t leave stale entries behind.
+    # 1) Drop old pair stats
     PairFlagStat.objects.filter(
         course_catalog_id=course_id,
         semester_id=semester_id,
     ).delete()
     print("  🔄 Cleared old PairFlagStat rows")
 
-    # 2) Fetch all assignments once in memory. If none exist, bail out.
+    # 2) Parallel report generation
     assignments = list(
         Assignments.objects.filter(
             course_catalog_id=course_id,
@@ -1015,35 +796,28 @@ def run_full_pipeline(request, course_id, semester_id):
     )
     if not assignments:
         raise Http404("No assignments for that course+semester.")
-    print(
-        f"  📋 Found {len(assignments)} assignments; " "generating reports in parallel…"
-    )
+    print(f"  📋 Found {len(assignments)} assignments; generating reports…")
 
-    # 2a) Generate each report concurrently; collect all flagged-pair data.
     all_flagged = []
     with ThreadPoolExecutor(max_workers=4) as pool:
-        # Schedule _generate_one for each assignment ID.
         futures = {pool.submit(_generate_one, a.id): a for a in assignments}
         for fut in as_completed(futures):
             a = futures[fut]
             try:
                 report, flagged = fut.result()
             except Exception as exc:
-                # If one assignment fails, log and continue with others.
-                print(f"  ❌ generate_report({a.id}) failed:", exc)
+                print(f"    ❌ generate_report({a.id}) failed:", exc)
                 continue
-
             if report:
-                print(f"    ▶ report.id={report.id}, " f"flagged_pairs={len(flagged)}")
+                print(f"    ▶ report.id={report.id}, flagged_pairs={len(flagged)}")
                 all_flagged.extend(flagged)
 
-    # 3) Perform a single bulk-upsert of all pair stats.
-    #    This replaces the old N+1 raw insert loops.
+    # 3) Bulk-upsert all flagged pairs
     print(f"  🔄 Bulk-upserting {len(all_flagged)} flagged entries…")
     inserted = update_all_pair_stats(course_id, semester_id, all_flagged)
     print(f"    ✔️ update_all_pair_stats inserted/updated {inserted} rows")
 
-    # 4) Clear and rebuild student semester profiles in one bulk pass.
+    # 4) Clear & rebuild student semester profiles
     StudentSemesterProfile.objects.filter(
         course_catalog_id=course_id,
         semester_id=semester_id,
@@ -1052,77 +826,384 @@ def run_full_pipeline(request, course_id, semester_id):
     print("  🔄 Recomputing StudentSemesterProfile features…")
     t0 = time.time()
     bulk_recompute_semester_profiles(course_id, semester_id)
-    print(f"  ✔️ Profiles recomputed in {time.time() - t0:.2f}s")
+    print(f"    ✔️ Profiles recomputed in {time.time() - t0:.2f}s")
 
-    # 5) Run the student-level K-Means clustering.
-    print("  🔄 Running student K-Means…")
+    # 5) Run student-level K-Means clustering
+    print("  🔄 Running student-level K-Means…")
     t1 = time.time()
     student_km = run_kmeans_for_course_semester(course_id, semester_id)
     print(
-        "  ✔️ Student K-Means done in "
-        f"{time.time() - t1:.2f}s (k={student_km.n_clusters})"
+        f"    ✔️ Student K-Means done in {time.time() - t1:.2f}s (k={student_km.n_clusters})"
     )
 
-    # 6) Run the pair-level K-Means clustering using the student model.
-    print("  🔄 Running pair K-Means…")
-    t2 = time.time()
-    run_kmeans_for_pair_stats(
-        course_id=course_id,
-        semester_id=semester_id,
-        student_km=student_km,
-        n_clusters=6,
-        random_state=0,
-        b_refs=10,
+    # 6) Run the per-pair analytics pipeline:
+    #    - populate_student_pair_stats
+    #    - run_pair_level_clustering
+    print("  🔄 Running data-analytics pipeline (pair stats + clustering)…")
+    pairs_stats, population_stats = populate_student_pair_stats(course_id, semester_id)
+    run_pair_level_clustering(course_id, semester_id)
+    print(
+        f"    ✔️ Data analytics done: {len(pairs_stats)} pairs, population={population_stats['total_pairs']}"
     )
-    print(f"  ✔️ Pair K-Means done in {time.time() - t2:.2f}s")
 
-    # Final: calculate and return the total duration of the pipeline.
     total = time.time() - start_ts
     print(f"✅ [PIPELINE] Finished full pipeline in {total:.2f}s\n")
-    return JsonResponse({"status": "success", "duration_s": total})
 
-
-
-
-
-
-
-
-
-
-
-
-
+    return JsonResponse(
+        {
+            "status": "success",
+            "duration_s": total,
+            "assignments_processed": len(assignments),
+            "flagged_rows_upserted": inserted,
+            "student_clusters": student_km.n_clusters,
+            "pairs_stats_count": len(pairs_stats),
+            "population_pairs": population_stats["total_pairs"],
+        }
+    )
 
 
 @require_GET
-def data_analytics_pipeline(request, course_id, semester_id):
+def four_panel_pipeline_plot(request, course_id, semester_id):
     """
-    Run the full data analytics pipeline for a course and semester.
+    2×2 figure.
 
-    This endpoint:
-    1. Clears old AssignmentReport rows for the course+semester.
-    2. Clears old PairFlagStat rows.
-    3. Generates reports for all assignments in parallel.
-    4. Bulk-upserts PairFlagStat entries.
-    5. Recomputes StudentSemesterProfile features.
-    6. Runs student-level K-Means clustering.
-    7. Runs pair-level K-Means clustering using student labels.
-
-    Returns:
-        JsonResponse: Status and duration of the pipeline run.
+      ┌───────────────────┬───────────────────┐
+      │ 1) Histogram +    │ 2) Pie chart:     │
+      │    Normal PDF     │    normal vs out. │
+      ├───────────────────┼───────────────────┤
+      │ 3) Q–Q plot for   │ 4) Tail CDF:      │
+      │    checking       │    frac ≥ Z       │
+      │    normality      │                   │
+      └───────────────────┴───────────────────┘
     """
-    start_ts = time.time()
-    print(
-        f"\n🚀 [PIPELINE] Starting data analytics pipeline "
-        f"for course={course_id}, semester={semester_id}"
+    # 1) Fetch data
+    means = np.array(
+        StudentPairSimilarityStatistics.objects.filter(
+            course_catalog_id=course_id, semester_id=semester_id
+        ).values_list("mean_similarity_score", flat=True)
     )
-    
-    pairs_stats, population_stats = populate_student_pair_stats(course_id, semester_id)
+    zs = np.array(
+        StudentPairSimilarityStatistics.objects.filter(
+            course_catalog_id=course_id, semester_id=semester_id
+        ).values_list("mean_z_score", flat=True)
+    )
+    if means.size == 0 or zs.size == 0:
+        raise Http404("No similarity data to plot")
 
-    return JsonResponse({
-        "status": "success",
-        "duration_s": time.time() - start_ts,
-        "pairs_stats_count": len(pairs_stats),
-        "population_stats_count": len(population_stats),
-    })
+    n = zs.size
+    mu, sigma = means.mean(), means.std()
+    n_out = int((zs >= 2.0).sum())
+    n_norm = n - n_out
+
+    # Tail CDF
+    sorted_z = np.sort(zs)
+    cdf = np.arange(1, n + 1) / n
+
+    # 2×2 grid
+    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+
+    # ── 1) Histogram + PDF ─────────────────────────────────────
+    ax0 = axs[0, 0]
+    ax0.hist(means, bins=30, density=True, alpha=0.6, edgecolor="k")
+    xs = np.linspace(means.min(), means.max(), 200)
+    ax0.plot(xs, stats.norm.pdf(xs, mu, sigma), "k--", label="Normal PDF")
+    ax0.set_title(f"Mean Similarity Histogram (n={n}, μ={mu:.2f}, σ={sigma:.2f})")
+    ax0.set_xlabel("Mean Similarity (%)")
+    ax0.set_ylabel("Density")
+    ax0.legend()
+
+    # ── 2) Pie chart ────────────────────────────────────────────
+    ax1 = axs[0, 1]
+    wedges, texts, autotexts = ax1.pie(
+        [n_norm, n_out],
+        labels=["Normal (< 2.0)", "Outlier (≥ 2.0)"],
+        autopct="%1.1f%%",
+        startangle=90,
+        colors=["C0", "C3"],
+        wedgeprops={"edgecolor": "k"},
+    )
+    ax1.set_title("Pairs by Z‑Score Region")
+
+    # raw counts above
+    fig.text(
+        0.62,
+        0.92,
+        f"Normal: {n_norm}   Outlier: {n_out}",
+        ha="center",
+        va="center",
+        fontsize=10,
+        fontweight="bold",
+    )
+
+    # outline % labels for contrast
+    for txt in autotexts:
+        txt.set_fontsize(14)
+        txt.set_fontweight("bold")
+        txt.set_color("white")
+        txt.set_path_effects([pe.Stroke(linewidth=3, foreground="black"), pe.Normal()])
+
+    # ── 3) Q–Q plot ─────────────────────────────────────────────
+    ax2 = axs[1, 0]
+    stats.probplot(means, dist="norm", sparams=(mu, sigma), plot=ax2)
+    ax2.get_lines()[1].set_color("red")  # the 45° reference line
+    ax2.set_title("Normal Q–Q Plot of Mean Similarities")
+    ax2.set_xlabel("Theoretical Quantiles")
+    ax2.set_ylabel("Sample Quantiles")
+
+    # ── 4) Tail CDF ─────────────────────────────────────────────
+    ax3 = axs[1, 1]
+    ax3.plot(sorted_z, 1 - cdf, marker=".", linestyle="none")
+    ax3.axvline(2.0, color="r", linestyle="--")
+    ax3.set_title("Fraction of Pairs ≥ Z")
+    ax3.set_xlabel("Z‑Score")
+    ax3.set_ylabel("Fraction ≥ Z")
+
+    fig.tight_layout()
+
+    # Render to PNG
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    plt.close(fig)
+    buf.seek(0)
+    return HttpResponse(buf.getvalue(), content_type="image/png")
+
+
+@require_GET
+def kmeans_pairs_plot(request, course_id, semester_id):
+    """
+    1) Pull StudentPairSimilarityStatistics for course+sem.
+
+    2) Build 9-feature matrix (incl. flagged_count & squares).
+    3) Pick k via Gap-statistic, fit KMeans, PCA→2D.
+    4) Color clusters with tab10 but force the MOST-SUSPICIOUS cluster red.
+    5) List & highlight Top 20 student pairs in that cluster.
+    6) Title includes course & semester names.
+    """
+    # fetch human-readable names
+    catalog = CourseCatalog.objects.get(pk=course_id)
+    sem = Semester.objects.get(pk=semester_id)
+
+    qs = StudentPairSimilarityStatistics.objects.filter(
+        course_catalog=catalog, semester=sem
+    ).order_by("id")
+    if not qs.exists():
+        raise Http404("No pair stats available")
+
+    # 1) Build N×9 feature matrix
+    X = np.vstack(
+        [
+            [
+                o.mean_similarity_score or 0.0,
+                o.median_similarity_score or 0.0,
+                o.similarity_std_dev or 0.0,
+                o.max_z_score or 0.0,
+                o.min_z_score or 0.0,
+                o.total_z_score or 0.0,
+                o.flagged_count or 0,
+                (o.flagged_count or 0) ** 2,
+                (o.max_z_score or 0.0) * abs(o.max_z_score or 0.0),
+            ]
+            for o in qs
+        ]
+    )
+
+    # 2) Gap-statistic helpers
+    def inertia(data, k):
+        return KMeans(n_clusters=k, random_state=0).fit(data).inertia_
+
+    def choose_k(data, k_max=6, B=5):
+        n, d = data.shape
+        mins, maxs = data.min(axis=0), data.max(axis=0)
+        Wks = np.zeros(k_max)
+        Wkbs = np.zeros((k_max, B))
+        for k in range(1, k_max + 1):
+            Wks[k - 1] = inertia(data, k)
+            for b in range(B):
+                ref = np.random.uniform(mins, maxs, size=(n, d))
+                Wkbs[k - 1, b] = inertia(ref, k)
+        logWks = np.log(Wks)
+        logWkbs_mean = np.log(Wkbs).mean(axis=1)
+        sk = np.sqrt(
+            ((np.log(Wkbs) - logWkbs_mean[:, None]) ** 2).mean(axis=1)
+        ) * np.sqrt(1 + 1 / B)
+        gaps = logWkbs_mean - logWks
+        for i in range(k_max - 1):
+            if gaps[i] >= gaps[i + 1] - sk[i + 1]:
+                return i + 1
+        return k_max
+
+    best_k = choose_k(X)
+
+    # 3) Standardize & cluster
+    mu, sigma = X.mean(0), X.std(0, ddof=0)
+    sigma[sigma == 0] = 1.0
+    Xs = (X - mu) / sigma
+    km = KMeans(n_clusters=best_k, random_state=0).fit(Xs)
+    labels = km.labels_
+
+    # 4) PCA → 2D
+    pca = PCA(n_components=2).fit(Xs)
+    proj = pca.transform(Xs)
+
+    # 5) Identify most-suspicious cluster by avg total_z_score
+    unique = sorted(set(labels))
+    avg_z = [
+        np.mean([o.total_z_score for o, l in zip(qs, labels) if l == c]) for c in unique
+    ]
+    suspicious = unique[int(np.argmax(avg_z))]
+
+    # build color array: tab10 for all, override suspicious → pure red
+    cmap = plt.cm.get_cmap("tab10")
+    norm = plt.Normalize(vmin=min(unique), vmax=max(unique))
+    colors = cmap(norm(labels))
+    colors[labels == suspicious] = np.array([1.0, 0.0, 0.0, 1.0])
+
+    # draw scatter
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.scatter(
+        proj[:, 0],
+        proj[:, 1],
+        c=colors,
+        edgecolors="k",
+        linewidths=0.5,
+        alpha=0.8,
+        s=35,
+    )
+    # expand top margin
+    fig.subplots_adjust(top=0.99)
+
+    # 6) Title with course & semester
+    ax.set_title(
+        f"{catalog.name} — {sem.name}\n" f"Student-Pair Clusters (k={best_k})",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.set_xlabel(f"PCA 1 ({pca.explained_variance_ratio_[0] * 100:.1f}% var)")
+    ax.set_ylabel(f"PCA 2 ({pca.explained_variance_ratio_[1] * 100:.1f}% var)")
+
+    # legend (suspicious in red)
+    handles = []
+    for c in unique:
+        face = "red" if c == suspicious else cmap(norm(c))
+        handles.append(Patch(facecolor=face, edgecolor="k", label=f"Cluster {c}"))
+    ax.legend(
+        handles=handles,
+        title="Cluster",
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.12),
+        ncol=len(unique),
+        frameon=False,
+        fontsize=9,
+        title_fontsize=10,
+    )
+
+    # 7) Pick Top 20 in that cluster by max_z_score
+    candidates = [(i, o) for i, (o, l) in enumerate(zip(qs, labels)) if l == suspicious]
+    top20 = sorted(candidates, key=lambda tup: tup[1].max_z_score, reverse=True)[:20]
+
+    # 8) Side-panel: four-line header + list with red circles & black text
+    tx, ty = 1.02, 1.02
+    dy, dx = 0.045, 0.06
+
+    # header
+    ax.text(
+        tx,
+        ty,
+        "Top 20 student pairs",
+        transform=ax.transAxes,
+        fontsize=10,
+        fontweight="bold",
+        va="top",
+        ha="left",
+    )
+    ax.text(
+        tx,
+        ty - dy,
+        "in most‐suspicious cluster",
+        transform=ax.transAxes,
+        fontsize=10,
+        fontweight="bold",
+        va="top",
+        ha="left",
+    )
+    ax.text(
+        tx,
+        ty - 2 * dy,
+        "ordered by max_z_score",
+        transform=ax.transAxes,
+        fontsize=9,
+        style="italic",
+        va="top",
+        ha="left",
+    )
+    ax.text(
+        tx,
+        ty - 3 * dy,
+        "(most‐suspicious = highest mean total_z_score)",
+        transform=ax.transAxes,
+        fontsize=9,
+        style="italic",
+        va="top",
+        ha="left",
+    )
+
+    # list entries
+    for rank, (_, o) in enumerate(top20, start=1):
+        y = ty - 4 * dy - (rank - 1) * dy
+        ax.text(
+            tx,
+            y,
+            str(rank),
+            transform=ax.transAxes,
+            fontsize=9,
+            fontweight="bold",
+            ha="left",
+            va="top",
+            bbox=dict(boxstyle="circle,pad=0.2", fc="none", ec="red", lw=1),
+            color="black",
+            zorder=4,
+        )
+        ax.text(
+            tx + dx,
+            y,
+            f"{o.student_a.first_name} {o.student_a.last_name} – "
+            f"{o.student_b.first_name} {o.student_b.last_name} (z={o.max_z_score:.1f})",
+            transform=ax.transAxes,
+            fontsize=9,
+            va="top",
+            ha="left",
+            color="black",
+        )
+
+    # 9) Highlight & annotate on-plot
+    idxs = [i for i, _ in top20]
+    ax.scatter(
+        proj[idxs, 0],
+        proj[idxs, 1],
+        s=120,
+        facecolors="none",
+        edgecolors="red",
+        linewidths=1.5,
+        zorder=3,
+    )
+    for rank, (i, _) in enumerate(top20, start=1):
+        x0, y0 = proj[i]
+        ax.text(
+            x0,
+            y0,
+            str(rank),
+            fontsize=10,
+            fontweight="bold",
+            ha="center",
+            va="center",
+            bbox=dict(boxstyle="circle,pad=0.2", fc="white", ec="red", lw=1),
+            zorder=5,
+        )
+
+    fig.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    return HttpResponse(buf.getvalue(), content_type="image/png")

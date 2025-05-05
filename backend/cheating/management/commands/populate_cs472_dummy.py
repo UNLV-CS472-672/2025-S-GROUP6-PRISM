@@ -196,7 +196,7 @@ class Command(BaseCommand):
                 for a in assignments:
                     seen = set()
                     for i, s1 in enumerate(students):
-                        for s2 in students[i + 1:]:
+                        for s2 in students[i + 1 :]:
                             sub1 = submap[(a.pk, s1.pk)]
                             sub2 = submap[(a.pk, s2.pk)]
                             # Order by PK to avoid duplicates

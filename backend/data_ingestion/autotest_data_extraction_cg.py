@@ -34,11 +34,13 @@ def mkdir(dir_path):
         return False
     return True
 
+
 def find_filepath(folder_string):
     """Over load function for adding file to a specified folder."""
     # all files will be downloaded/created in the same folder directory called "autotest files"
     folder = "autotest files"
     return os.path.join(os.getcwd(), folder, folder_string)
+
 
 def extract_data(client, tests):
     """Extract the input files/fixtures uploaded for each assignment."""
@@ -85,6 +87,7 @@ def extract_metadata(tuple):
                 dictionary[assi_name]["meta_data"].append(step_dict)
     return dictionary
 
+
 def make_text_files(meta_data, folder, client, tuple):
     """Download files: TODO."""
     assi_name = tuple[0]
@@ -99,9 +102,10 @@ def make_text_files(meta_data, folder, client, tuple):
             extract_fixture_scripts(allfixtures, curr_folder)
             i += 1
 
+
 def extract_fixture_scripts(fixtures, folder):
     """Download all input/output scripts from fixtures."""
-    for key,value in fixtures.items():
+    for key, value in fixtures.items():
         if "input" in key:
             new_folder = os.path.join(folder, "input_files")
         elif "output" in key:
@@ -114,6 +118,7 @@ def extract_fixture_scripts(fixtures, folder):
         with open(filepath, "w") as f:
             f.write(str(value))
 
+
 def extract_fixtures(client, test_id, fixtures):
     """Extract fixtures in a dictionary."""
     autotests = {}
@@ -125,6 +130,7 @@ def extract_fixtures(client, test_id, fixtures):
         curr_autotest = curr_autotest.decode("utf-8")
         autotests[fixture.name] = curr_autotest
     return autotests
+
 
 def main():
     """Login and populate the class attributes."""

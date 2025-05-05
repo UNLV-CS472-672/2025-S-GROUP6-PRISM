@@ -219,33 +219,38 @@ class AggregatedAssignmentDataView(APIView):
 
         # Flagged submissions per assignment (uses dynamic threshold)
         response_data["flagged_per_assignment"] = list(
-            base_qs
-            .filter(percentage__gte=F("assignment__requiredsubmissionfiles__similarity_threshold"))
+            base_qs.filter(
+                percentage__gte=F(
+                    "assignment__requiredsubmissionfiles__similarity_threshold"
+                )
+            )
             .values("assignment__title")
             .annotate(flagged_count=Count("id"))
         )
 
         # Similarity score trend over time (per submission date)
         response_data["similarity_trends"] = list(
-            base_qs
-            .values(date=F("submission_id_1__created_at"))
+            base_qs.values(date=F("submission_id_1__created_at"))
             .annotate(avg_similarity=Avg("percentage"))
             .order_by("date")
         )
 
         # Flagged submissions per professor
         response_data["flagged_by_professor"] = list(
-            base_qs
-            .filter(percentage__gte=F("assignment__requiredsubmissionfiles__similarity_threshold"))
+            base_qs.filter(
+                percentage__gte=F(
+                    "assignment__requiredsubmissionfiles__similarity_threshold"
+                )
+            )
             .values("submission_id_1__course_instance__professor__user__username")
             .annotate(flagged_count=Count("id"))
         )
 
         # Professor wise average similarity score
         response_data["professor_avg_similarity"] = list(
-            base_qs
-            .values("submission_id_1__course_instance__professor__user__username")
-            .annotate(avg_similarity=Avg("percentage"))
+            base_qs.values(
+                "submission_id_1__course_instance__professor__user__username"
+            ).annotate(avg_similarity=Avg("percentage"))
         )
 
         return Response(response_data, status=200)

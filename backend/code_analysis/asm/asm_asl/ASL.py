@@ -7,13 +7,15 @@ x86 input file. Currently, an ASL will consist of a starting
 and ending position to denote where each line of code was found
 in the x86 assembly file.
 """
+
 from code_analysis.asm.asm_token.Position import Position
+
 
 class ASL:
     """Create object to represent an ASL."""
 
-    __startPos:Position = None
-    __endPos:Position = None
+    __startPos: Position = None
+    __endPos: Position = None
 
     def __init__(self, start, end):
         """Construct ASL object."""

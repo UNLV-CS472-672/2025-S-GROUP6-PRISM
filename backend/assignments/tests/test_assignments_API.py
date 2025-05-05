@@ -448,7 +448,9 @@ class AggregatedAssignmentDataViewTests(BaseViewTest):
     def setUpTestData(cls):
         """Set up test data for AggregatedAssignmentDataView tests."""
         super().setUpTestData()
-        cls.url = reverse("aggregated-assignment-data")  # make sure its in urls.py (PR 69)
+        cls.url = reverse(
+            "aggregated-assignment-data"
+        )  # make sure its in urls.py (PR 69)
 
     def test_anonymous_cannot_access(self):
         """Test that anonymous users cannot access the aggregation endpoint."""
@@ -476,13 +478,17 @@ class AggregatedAssignmentDataViewTests(BaseViewTest):
         }
         self.assertTrue(expected.issubset(data.keys()))
         # check that the max sim score is 80. Its the only subsimpair i made tbh
-        max_scores = {d["submission_id_1__student__first_name"]: d["max_score"]
-                      for d in data["student_max_similarity_score"]}
+        max_scores = {
+            d["submission_id_1__student__first_name"]: d["max_score"]
+            for d in data["student_max_similarity_score"]
+        }
         self.assertEqual(max_scores[self.student.first_name], 80)
 
     def test_admin_sees_everything(self):
         """Test that an admin user can access all aggregated assignment data."""
-        admin = User.objects.create_superuser(email="admin@example.com", password="superpass")
+        admin = User.objects.create_superuser(
+            email="admin@example.com", password="superpass"
+        )
         self.client.login(email=admin.email, password="superpass")
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)

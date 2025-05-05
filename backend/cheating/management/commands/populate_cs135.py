@@ -1,3 +1,5 @@
+"""Command to populate a fresh database with dummy data for CS135 course."""
+
 import random
 from datetime import date, timedelta
 
@@ -5,7 +7,13 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from courses.models import CourseCatalog, Semester, CourseInstances, Students, Professors
+from courses.models import (
+    CourseCatalog,
+    Semester,
+    CourseInstances,
+    Students,
+    Professors,
+)
 from assignments.models import Assignments, Submissions
 from cheating.models import SubmissionSimilarityPairs
 
@@ -13,6 +21,8 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
+    """Command to populate a fresh database with dummy data for CS135 course."""
+
     help = (
         "On a fresh DB, populate CS135 with:\n"
         "- 2 sections × 40 students each\n"
@@ -24,14 +34,18 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **opts):
+        """Entry point for the command."""
         with transaction.atomic():
             # 1) Semester & Catalog
             semester, _ = Semester.objects.get_or_create(
-                year=2025, term="Spring", session="Regular",
+                year=2025,
+                term="Spring",
+                session="Regular",
                 defaults={"name": "Spring 2025 – Regular"},
             )
             course, _ = CourseCatalog.objects.get_or_create(
-                subject="CS", catalog_number=135,
+                subject="CS",
+                catalog_number=135,
                 defaults={
                     "name": "CS135",
                     "course_title": "Dummy CS135",
@@ -62,7 +76,7 @@ class Command(BaseCommand):
 
                 base = (sec - 1) * 40
                 for i in range(40):
-                    ace = f"{sec}{i+1:02d}"
+                    ace = f"{sec}{i + 1:02d}"
                     stud, _ = Students.objects.get_or_create(
                         ace_id=ace,
                         defaults={
@@ -70,7 +84,7 @@ class Command(BaseCommand):
                             "nshe_id": 900000 + base + i,
                             "codegrade_id": 1000000 + base + i,
                             "first_name": "Student",
-                            "last_name": str(i+1),
+                            "last_name": str(i + 1),
                         },
                     )
                     all_students.append((stud, inst))
@@ -90,14 +104,14 @@ class Command(BaseCommand):
             cheat_pairs = [
                 (sorted_cheat[i], sorted_cheat[j])
                 for i in range(len(sorted_cheat))
-                for j in range(i+1, len(sorted_cheat))
+                for j in range(i + 1, len(sorted_cheat))
             ]
 
             # 4) Ten dummy assignments
             assignments = []
             start = date(2025, 1, 15)
             for num in range(1, 11):
-                due = start + timedelta(weeks=num-1)
+                due = start + timedelta(weeks=num - 1)
                 lock = due + timedelta(hours=2)
                 a, created = Assignments.objects.get_or_create(
                     course_catalog=course,
@@ -126,21 +140,25 @@ class Command(BaseCommand):
                 for a in assignments:
                     # unique file_path per submission
                     path = f"dummy/{stud.ace_id}_a{a.assignment_number}.py"
-                    subs.append(Submissions(
-                        assignment=a,
-                        student=stud,
-                        course_instance=inst,
-                        grade=round(random.uniform(60, 100), 2),
-                        created_at=a.due_date - timedelta(days=1),
-                        flagged=False,
-                        file_path=path,
-                    ))
+                    subs.append(
+                        Submissions(
+                            assignment=a,
+                            student=stud,
+                            course_instance=inst,
+                            grade=round(random.uniform(60, 100), 2),
+                            created_at=a.due_date - timedelta(days=1),
+                            flagged=False,
+                            file_path=path,
+                        )
+                    )
             Submissions.objects.bulk_create(subs)
             self.stdout.write(f"✉️ Created {len(subs)} submissions")
 
             # 6) Build submission lookup by (assignment_number, ace_id)
             submap = {}
-            for sub in Submissions.objects.filter(assignment__in=assignments).select_related("assignment", "student"):
+            for sub in Submissions.objects.filter(
+                assignment__in=assignments
+            ).select_related("assignment", "student"):
                 key = (sub.assignment.assignment_number, sub.student.ace_id)
                 submap[key] = sub.pk
 
@@ -157,18 +175,20 @@ class Command(BaseCommand):
                         self.stderr.write(f"⚠️ Missing sub for cheaters {k1},{k2}")
                         continue
                     s1, s2 = submap[k1], submap[k2]
-                    pairs.append(SubmissionSimilarityPairs(
-                        assignment_id=a.pk,
-                        submission_id_1_id=min(s1, s2),
-                        submission_id_2_id=max(s1, s2),
-                        file_name="cheater_pair",
-                        match_id=random.randint(10000, 19999),
-                        percentage=random.randint(45, 75),
-                    ))
+                    pairs.append(
+                        SubmissionSimilarityPairs(
+                            assignment_id=a.pk,
+                            submission_id_1_id=min(s1, s2),
+                            submission_id_2_id=max(s1, s2),
+                            file_name="cheater_pair",
+                            match_id=random.randint(10000, 19999),
+                            percentage=random.randint(45, 75),
+                        )
+                    )
 
                 # non-cheater pairs
                 for i in range(n):
-                    for j in range(i+1, n):
+                    for j in range(i + 1, n):
                         s1_obj, s2_obj = studs[i], studs[j]
                         if s1_obj in cheaters and s2_obj in cheaters:
                             continue
@@ -177,15 +197,19 @@ class Command(BaseCommand):
                             self.stderr.write(f"⚠️ Missing sub for pair {k1},{k2}")
                             continue
                         s1, s2 = submap[k1], submap[k2]
-                        pairs.append(SubmissionSimilarityPairs(
-                            assignment_id=a.pk,
-                            submission_id_1_id=min(s1, s2),
-                            submission_id_2_id=max(s1, s2),
-                            file_name="sample.py",
-                            match_id=random.randint(20000, 29999),
-                            percentage=random.randint(30, 65),
-                        ))
+                        pairs.append(
+                            SubmissionSimilarityPairs(
+                                assignment_id=a.pk,
+                                submission_id_1_id=min(s1, s2),
+                                submission_id_2_id=max(s1, s2),
+                                file_name="sample.py",
+                                match_id=random.randint(20000, 29999),
+                                percentage=random.randint(30, 65),
+                            )
+                        )
 
             SubmissionSimilarityPairs.objects.bulk_create(pairs)
             self.stdout.write(f"🔗 Created {len(pairs)} similarity pairs")
-            self.stdout.write(self.style.SUCCESS("✅ Dummy CS135 data fully populated!"))
+            self.stdout.write(
+                self.style.SUCCESS("✅ Dummy CS135 data fully populated!")
+            )

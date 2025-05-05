@@ -6,13 +6,15 @@ This type of declaration will only have a name, the size of
 the data in bytes, and any values initialized if we are trying
 to create an array of values.
 """
+
 from code_analysis.asm.asm_asl.ASL import ASL
+
 
 class UninitDeclaration(ASL):
     """Create object to represent an UninitDeclaration."""
 
-    __name:str = None
-    __size:str = None
+    __name: str = None
+    __size: str = None
     __values = None
 
     def __init__(self, startPos, endPos, name, size, values):

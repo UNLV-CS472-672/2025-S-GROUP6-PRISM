@@ -6,12 +6,14 @@ An instruction object will store the instruction it
 represents followed by any additional info the instruction
 needs to perform its job correctly.
 """
+
 from code_analysis.asm.asm_asl.ASL import ASL
+
 
 class Instruction(ASL):
     """Create object to represent Instruction."""
 
-    __instruction:str = None
+    __instruction: str = None
     __extraInfo = None
 
     def __init__(self, startPos, endPos, instr, extra):

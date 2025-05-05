@@ -21,7 +21,7 @@ from .views import (
     kmeans_clusters_plot,
     run_full_pipeline,
     kmeans_pairs_plot,
-    data_analytics_pipeline,
+    four_panel_pipeline_plot,
 )
 
 router = DefaultRouter()
@@ -89,8 +89,8 @@ urlpatterns = [
         name="kmeans-pairs-plot",
     ),
     path(
-        "data-analytics-pipeline/<int:course_id>/<int:semester_id>/",
-        data_analytics_pipeline,
-        name="data-analytics-pipeline",
+        "four-panel-pipeline-plot/<int:course_id>/<int:semester_id>/",
+        four_panel_pipeline_plot,
+        name="four-panel-pipeline-plot",
     ),
 ]

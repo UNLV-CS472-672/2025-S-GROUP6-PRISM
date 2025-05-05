@@ -134,27 +134,32 @@ Areas for Improvement (TODO):
 """
 
 # LLM API clients
-import google.generativeai as genai   # Google Gemini API client
-from openai import OpenAI             # OpenAI (ChatGPT, Grok) API client
-import anthropic                      # Anthropic (Claude) API client
-import ollama                         # Ollama API client (local LLM inference)
+import google.generativeai as genai  # Google Gemini API client
+from openai import OpenAI  # OpenAI (ChatGPT, Grok) API client
+import anthropic  # Anthropic (Claude) API client
+import ollama  # Ollama API client (local LLM inference)
 
 # Core Python libraries
-import json                           # JSON encoding and decoding
-import sys                            # Access to command-line arguments and system functions
-import logging                        # Structured logging for API calls and application events
-import inspect                        # Runtime inspection for method metadata (e.g., getting current method names)
-import time                           # Sleep and timing operations
-from datetime import datetime, timedelta  # Date and time handling for API rate limits and metadata
-from decimal import Decimal           # Precise decimal arithmetic for API billing/budget tracking
+import json  # JSON encoding and decoding
+import sys  # Access to command-line arguments and system functions
+import logging  # Structured logging for API calls and application events
+import inspect  # Runtime inspection for method metadata (e.g., getting current method names)
+import time  # Sleep and timing operations
+from datetime import (
+    datetime,
+    timedelta,
+)  # Date and time handling for API rate limits and metadata
+from decimal import (
+    Decimal,
+)  # Precise decimal arithmetic for API billing/budget tracking
 
 # Third-party libraries
-import pandas as pd                   # Data manipulation and database querying (assignment metadata)
+import pandas as pd  # Data manipulation and database querying (assignment metadata)
 from sqlalchemy import create_engine  # Database connection engine (PostgreSQL)
-from decouple import config           # Environment variable and configuration management
-from pathlib import Path              # Cross-platform filesystem path handling
-import pymupdf4llm                     # PDF-to-Markdown conversion optimized for LLM processing
-from lxml import etree                 # XML/HTML element building for structured prompt construction
+from decouple import config  # Environment variable and configuration management
+from pathlib import Path  # Cross-platform filesystem path handling
+import pymupdf4llm  # PDF-to-Markdown conversion optimized for LLM processing
+from lxml import etree  # XML/HTML element building for structured prompt construction
 
 
 # Basic configuration for logging
@@ -171,9 +176,7 @@ api_logger.setLevel(logging.INFO)
 
 # Define formatter
 formatter = logging.Formatter(
-    "{asctime} - {levelname} - {message}",
-    style="{",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    "{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M:%S"
 )
 
 # Main log file handler (logs everything)
@@ -194,6 +197,7 @@ class GeminiFilter(logging.Filter):
 
     logging stuff.
     """
+
     def filter(self, record):
         """
         filter: Filters log records to include only those related to the Gemini model.
@@ -230,6 +234,7 @@ class OpenAIFilter(logging.Filter):
 
     logging stuff.
     """
+
     def filter(self, record):
         """
         filter: Filters log records to include only those related to the ChatGPT model.
@@ -266,6 +271,7 @@ class AnthropicFilter(logging.Filter):
 
     logging stuff.
     """
+
     def filter(self, record):
         """
         filter: Filters log records to include only those related to the Claude model.
@@ -302,6 +308,7 @@ class OllamaFilter(logging.Filter):
 
     logging stuff.
     """
+
     def filter(self, record):
         """
         filter: Filters log records to include only those related to the Ollama model.
@@ -338,6 +345,7 @@ class GrokFilter(logging.Filter):
 
     logging stuff.
     """
+
     def filter(self, record):
         """
         filter: Filters log records to include only those related to the Grok model.
@@ -374,7 +382,9 @@ api_logger.addHandler(file_handler_ollama)
 api_logger.addHandler(file_handler_grok)
 
 # Establish database connection
-ENGINE = create_engine(f"postgresql+psycopg2://{config("DB_USER")}:{config("DB_PASSWORD")}@{config("DB_HOST")}:{config("DB_PORT")}/{config("DB_NAME")}")
+ENGINE = create_engine(
+    f"postgresql+psycopg2://{config("DB_USER")}:{config("DB_PASSWORD")}@{config("DB_HOST")}:{config("DB_PORT")}/{config("DB_NAME")}"
+)
 
 
 def main() -> None:
@@ -397,6 +407,7 @@ class promptAI:
 
     Prompt AI to generate code.
     """
+
     GEMINI_FINISH_REASON = {
         0: "FINISH_REASON_UNSPECIFIED",
         1: "STOP",
@@ -409,7 +420,7 @@ class promptAI:
         8: "PROHIBITED_CONTENT",
         9: "SPII",
         10: "MALFORMED_FUNCTION_CALL",
-        11: "IMAGE_SAFETY"
+        11: "IMAGE_SAFETY",
     }
 
     def __init__(self) -> None:
@@ -432,7 +443,9 @@ class promptAI:
             If any API client configuration, environment loading, or filesystem operation fails during initialization.
         """
         try:
-            logging.info("Loading environment variables and initializing API parameters...")
+            logging.info(
+                "Loading environment variables and initializing API parameters..."
+            )
 
             log_dir = Path(config("LOG_DIR"))
             if not log_dir.exists():
@@ -440,8 +453,12 @@ class promptAI:
 
             # Google (Gemini)
             genai.configure(api_key=config("GEMINI_API_KEY"))
-            self.GEMINI_REQUESTS_PER_MINUTE_LIMIT = int(config("GEMINI_REQUESTS_PER_MINUTE_LIMIT"))
-            self.GEMINI_REQUESTS_PER_DAY_LIMIT = int(config("GEMINI_REQUESTS_PER_DAY_LIMIT"))
+            self.GEMINI_REQUESTS_PER_MINUTE_LIMIT = int(
+                config("GEMINI_REQUESTS_PER_MINUTE_LIMIT")
+            )
+            self.GEMINI_REQUESTS_PER_DAY_LIMIT = int(
+                config("GEMINI_REQUESTS_PER_DAY_LIMIT")
+            )
             self.GEMINI_TOKENS_PER_MINUTE = int(config("GEMINI_TOKENS_PER_MINUTE"))
             self.GEMINI_MODEL = genai.GenerativeModel(config("GEMINI_MODEL"))
             self.GEMINI_MODEL_NAME = config("GEMINI_MODEL")
@@ -451,67 +468,114 @@ class promptAI:
             self.gemini_tokens_minute_history = 0
 
             self.GEMINI_LOG_PATH.touch()
-            logging.info(f"Gemini model '{self.GEMINI_MODEL_NAME}' selected for prompting...")
+            logging.info(
+                f"Gemini model '{self.GEMINI_MODEL_NAME}' selected for prompting..."
+            )
 
             # OpenAI (ChatGPT)
             self.OPENAI_API_KEY = config("OPENAI_API_KEY")
             self.OPENAI_CLIENT = OpenAI(api_key=config("OPENAI_API_KEY"))
-            self.OPENAI_REQUESTS_PER_MINUTE_LIMIT = int(config("OPENAI_REQUESTS_PER_MINUTE_LIMIT"))
-            self.OPENAI_TOKENS_PER_MINUTE_LIMIT = int(config("OPENAI_TOKENS_PER_MINUTE_LIMIT"))
+            self.OPENAI_REQUESTS_PER_MINUTE_LIMIT = int(
+                config("OPENAI_REQUESTS_PER_MINUTE_LIMIT")
+            )
+            self.OPENAI_TOKENS_PER_MINUTE_LIMIT = int(
+                config("OPENAI_TOKENS_PER_MINUTE_LIMIT")
+            )
             self.OPENAI_MODEL = config("OPENAI_MODEL")
             self.OPENAI_LOG_PATH = Path(config("OPENAI_LOG_PATH"))
-            self.OPENAI_MODEL_COST_PER_INPUT_TOKEN = Decimal(config("OPENAI_MODEL_COST_PER_INPUT_TOKEN"))
-            self.OPENAI_MODEL_COST_PER_CACHE_INPUT_TOKEN = Decimal(config("OPENAI_MODEL_COST_PER_CACHE_INPUT_TOKEN"))
-            self.OPENAI_MODEL_COST_PER_OUTPUT_TOKEN = Decimal(config("OPENAI_MODEL_COST_PER_OUTPUT_TOKEN"))
+            self.OPENAI_MODEL_COST_PER_INPUT_TOKEN = Decimal(
+                config("OPENAI_MODEL_COST_PER_INPUT_TOKEN")
+            )
+            self.OPENAI_MODEL_COST_PER_CACHE_INPUT_TOKEN = Decimal(
+                config("OPENAI_MODEL_COST_PER_CACHE_INPUT_TOKEN")
+            )
+            self.OPENAI_MODEL_COST_PER_OUTPUT_TOKEN = Decimal(
+                config("OPENAI_MODEL_COST_PER_OUTPUT_TOKEN")
+            )
             self.OPENAI_MINIMUM_BALANCE = Decimal(config("OPENAI_MINIMUM_BALANCE"))
             self.openai_budget = None
             self.openai_minute_history = []
             self.openai_tokens_minute_history = 0
 
             self.OPENAI_LOG_PATH.touch()
-            logging.info(f"ChatGPT model '{self.OPENAI_MODEL}' selected for prompting...")
+            logging.info(
+                f"ChatGPT model '{self.OPENAI_MODEL}' selected for prompting..."
+            )
 
             # Anthropic (Claude)
-            self.ANTHROPIC_CLIENT = anthropic.Anthropic(api_key=config("ANTHROPIC_API_KEY"))
+            self.ANTHROPIC_CLIENT = anthropic.Anthropic(
+                api_key=config("ANTHROPIC_API_KEY")
+            )
             self.ANTHROPIC_MODEL = config("ANTHROPIC_MODEL")
             self.ANTHROPIC_LOG_PATH = Path(config("ANTHROPIC_LOG_PATH"))
-            self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT = int(config("ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT"))
-            self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT = int(config("ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT"))
-            self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT = int(config("ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT"))
-            self.ANTHROPIC_MODEL_COST_PER_INPUT_TOKEN = Decimal(config("ANTHROPIC_MODEL_COST_PER_INPUT_TOKEN"))
-            self.ANTHROPIC_MODEL_COST_PER_CACHE_WRITE_TOKEN = Decimal(config("ANTHROPIC_MODEL_COST_PER_CACHE_WRITE_TOKEN"))
-            self.ANTHROPIC_MODEL_COST_PER_CACHE_READ_TOKEN = Decimal(config("ANTHROPIC_MODEL_COST_PER_CACHE_READ_TOKEN"))
-            self.ANTHROPIC_MODEL_COST_PER_OUTPUT_TOKEN = Decimal(config("ANTHROPIC_MODEL_COST_PER_OUTPUT_TOKEN"))
-            self.ANTHROPIC_MINUMUM_BALANCE = Decimal(config("ANTHROPIC_MINUMUM_BALANCE"))
+            self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT = int(
+                config("ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT")
+            )
+            self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT = int(
+                config("ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT")
+            )
+            self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT = int(
+                config("ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT")
+            )
+            self.ANTHROPIC_MODEL_COST_PER_INPUT_TOKEN = Decimal(
+                config("ANTHROPIC_MODEL_COST_PER_INPUT_TOKEN")
+            )
+            self.ANTHROPIC_MODEL_COST_PER_CACHE_WRITE_TOKEN = Decimal(
+                config("ANTHROPIC_MODEL_COST_PER_CACHE_WRITE_TOKEN")
+            )
+            self.ANTHROPIC_MODEL_COST_PER_CACHE_READ_TOKEN = Decimal(
+                config("ANTHROPIC_MODEL_COST_PER_CACHE_READ_TOKEN")
+            )
+            self.ANTHROPIC_MODEL_COST_PER_OUTPUT_TOKEN = Decimal(
+                config("ANTHROPIC_MODEL_COST_PER_OUTPUT_TOKEN")
+            )
+            self.ANTHROPIC_MINUMUM_BALANCE = Decimal(
+                config("ANTHROPIC_MINUMUM_BALANCE")
+            )
             self.anthropic_budget = None
             self.anthropic_minute_history = []
             self.anthropic_input_tokens_minute_history = 0
             self.anthropic_output_tokens_minute_history = 0
 
             self.ANTHROPIC_LOG_PATH.touch()
-            logging.info(f"Claude model '{self.ANTHROPIC_MODEL}' selected for prompting...")
+            logging.info(
+                f"Claude model '{self.ANTHROPIC_MODEL}' selected for prompting..."
+            )
 
             # Ollama (Microsoft's Phi, Deepseek R1)
             self.OLLAMA_CLIENT = ollama.Client(host=config("OLLAMA_API_ADDRESS"))
             self.OLLAMA_LOG_PATH = config("OLLAMA_LOG_PATH")
-            self.OLLAMA_MODELS = [config("OLLAMA_PHI_MODEL"), config("OLLAMA_DEEPSEEK_MODEL")]
+            self.OLLAMA_MODELS = [
+                config("OLLAMA_PHI_MODEL"),
+                config("OLLAMA_DEEPSEEK_MODEL"),
+            ]
 
             self.OLLAMA_LOG_PATH.touch()
-            logging.info(f"Ollama models {str(self.OLLAMA_MODELS)[1:-1]} selected for prompting...")
+            logging.info(
+                f"Ollama models {str(self.OLLAMA_MODELS)[1:-1]} selected for prompting..."
+            )
 
             # Grok API configs
-            self.GROK_CLIENT = OpenAI(api_key=config("GROK_API_KEY"), base_url=config("GROK_API_URL"))
+            self.GROK_CLIENT = OpenAI(
+                api_key=config("GROK_API_KEY"), base_url=config("GROK_API_URL")
+            )
             self.GROK_LOG_PATH = Path(config("GROK_LOG_PATH"))
             # self.GROK_PROMPTS_PER_SECOND_LIMIT = config("GROK_PROMPTS_PER_SECOND_LIMIT")
             self.GROK_MODEL = config("GROK_MODEL")
             self.GROK_MODEL_CONTEXT_LIMIT = int(config("GROK_MODEL_CONTEXT_LIMIT"))
-            self.GROK_MODEL_COST_PER_INPUT_TOKEN = Decimal(config("GROK_MODEL_COST_PER_INPUT_TOKEN"))
-            self.GROK_MODEL_COST_PER_OUTPUT_TOKEN = Decimal(config("GROK_MODEL_COST_PER_OUTPUT_TOKEN"))
+            self.GROK_MODEL_COST_PER_INPUT_TOKEN = Decimal(
+                config("GROK_MODEL_COST_PER_INPUT_TOKEN")
+            )
+            self.GROK_MODEL_COST_PER_OUTPUT_TOKEN = Decimal(
+                config("GROK_MODEL_COST_PER_OUTPUT_TOKEN")
+            )
             self.GROK_MINIMUM_BALANCE = Decimal(config("GROK_MINIMUM_BALANCE"))
             self.grok_budget = None
 
             self.GROK_LOG_PATH.touch()
-            logging.info(f"Dumbfuck Elon's '{self.GROK_MODEL}' model selected for prompting...")
+            logging.info(
+                f"Dumbfuck Elon's '{self.GROK_MODEL}' model selected for prompting..."
+            )
 
             self.init_api_history()
 
@@ -574,24 +638,38 @@ class promptAI:
                     record = line.split(" - ")
                     if record[1] == "INFO" and record[2] == "Gemini":
                         metadata = json.loads(record[3].strip())
-                        metadata["timestamp"] = datetime.fromisoformat(metadata["timestamp"])
+                        metadata["timestamp"] = datetime.fromisoformat(
+                            metadata["timestamp"]
+                        )
 
                         if datetime.now() < metadata["timestamp"] + timedelta(days=1):
                             self.gemini_day_history.append(metadata)
                         else:
                             break
 
-                        if datetime.now() < metadata["timestamp"] + timedelta(minutes=1):
+                        if datetime.now() < metadata["timestamp"] + timedelta(
+                            minutes=1
+                        ):
                             self.gemini_minute_history.append(metadata)
-                            self.gemini_tokens_minute_history += metadata["total_token_count"]
+                            self.gemini_tokens_minute_history += metadata[
+                                "total_token_count"
+                            ]
 
             if len(self.gemini_day_history) < self.GEMINI_REQUESTS_PER_DAY_LIMIT:
-                api_logger.warning(f"Gemini - Starting daily prompt usage: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT} requests used.")
+                api_logger.warning(
+                    f"Gemini - Starting daily prompt usage: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT} requests used."
+                )
             else:
-                raise ValueError(f"Gemini - Daily API prompt limit reached: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT}.")
+                raise ValueError(
+                    f"Gemini - Daily API prompt limit reached: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT}."
+                )
 
-            api_logger.warning(f"Gemini - Starting minute history: {len(self.gemini_minute_history)} / {self.GEMINI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute.")
-            api_logger.warning(f"Gemini - Starting minute history: {self.gemini_tokens_minute_history} / {self.GEMINI_TOKENS_PER_MINUTE} tokens used in the past minute.")
+            api_logger.warning(
+                f"Gemini - Starting minute history: {len(self.gemini_minute_history)} / {self.GEMINI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute."
+            )
+            api_logger.warning(
+                f"Gemini - Starting minute history: {self.gemini_tokens_minute_history} / {self.GEMINI_TOKENS_PER_MINUTE} tokens used in the past minute."
+            )
             logging.info("Gemini - Finished extracting API call history from logs.")
 
         except ValueError as ve:
@@ -599,7 +677,9 @@ class promptAI:
             raise
 
         except Exception as e:
-            logging.exception(f"Fatal error occurred in: promptAI.init_api_history_gemini on line {e.__traceback__.tb_lineno}")
+            logging.exception(
+                f"Fatal error occurred in: promptAI.init_api_history_gemini on line {e.__traceback__.tb_lineno}"
+            )
             raise
 
     def prompt_gemini(self, prompt: str) -> str:
@@ -630,33 +710,70 @@ class promptAI:
         try:
             logging.info(f"Prompting Gemini model '{self.GEMINI_MODEL_NAME}'...")
 
-            while len(self.gemini_day_history) > 0 and datetime.now() >= self.gemini_day_history[0]["timestamp"] + timedelta(days=1):
+            while len(
+                self.gemini_day_history
+            ) > 0 and datetime.now() >= self.gemini_day_history[0][
+                "timestamp"
+            ] + timedelta(
+                days=1
+            ):
                 self.gemini_day_history.pop(0)
 
-            api_logger.warning(f"Gemini - Current day history: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT} prompts used in the past day.")
-            api_logger.warning(f"Gemini - Current minute history: {len(self.gemini_minute_history)} / {self.GEMINI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute.")
-            api_logger.warning(f"Gemini - Current tokens/minute history: {self.gemini_tokens_minute_history} / {self.GEMINI_TOKENS_PER_MINUTE} tokens used in the past minute.")
+            api_logger.warning(
+                f"Gemini - Current day history: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT} prompts used in the past day."
+            )
+            api_logger.warning(
+                f"Gemini - Current minute history: {len(self.gemini_minute_history)} / {self.GEMINI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute."
+            )
+            api_logger.warning(
+                f"Gemini - Current tokens/minute history: {self.gemini_tokens_minute_history} / {self.GEMINI_TOKENS_PER_MINUTE} tokens used in the past minute."
+            )
 
             if len(self.gemini_day_history) >= self.GEMINI_REQUESTS_PER_DAY_LIMIT:
-                raise ValueError(f"Gemini - Daily API prompt limit reached: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT}.")
+                raise ValueError(
+                    f"Gemini - Daily API prompt limit reached: {len(self.gemini_day_history)} / {self.GEMINI_REQUESTS_PER_DAY_LIMIT}."
+                )
 
-            while len(self.gemini_minute_history) > 0 and datetime.now() >= self.gemini_minute_history[0]["timestamp"] + timedelta(minutes=1):
-                self.gemini_tokens_minute_history -= self.gemini_minute_history[0]["total_token_count"]
+            while len(
+                self.gemini_minute_history
+            ) > 0 and datetime.now() >= self.gemini_minute_history[0][
+                "timestamp"
+            ] + timedelta(
+                minutes=1
+            ):
+                self.gemini_tokens_minute_history -= self.gemini_minute_history[0][
+                    "total_token_count"
+                ]
                 self.gemini_minute_history.pop(0)
 
             if len(self.gemini_minute_history) >= self.GEMINI_REQUESTS_PER_MINUTE_LIMIT:
-                wait_time = max(0, (self.gemini_minute_history[0]["timestamp"] + timedelta(minutes=1) - datetime.now()).total_seconds())
+                wait_time = max(
+                    0,
+                    (
+                        self.gemini_minute_history[0]["timestamp"]
+                        + timedelta(minutes=1)
+                        - datetime.now()
+                    ).total_seconds(),
+                )
 
                 if wait_time > 0:
-                    logging.warning(f"Gemini prompts/minute limit reached: {len(self.gemini_minute_history)}. Waiting {wait_time} seconds before next prompt...")
+                    logging.warning(
+                        f"Gemini prompts/minute limit reached: {len(self.gemini_minute_history)}. Waiting {wait_time} seconds before next prompt..."
+                    )
                     time.sleep(wait_time)
 
-                while len(self.gemini_minute_history) > 0 and datetime.now() >= (self.gemini_minute_history[0]["timestamp"] + timedelta(minutes=1)):
-                    self.gemini_tokens_minute_history -= self.gemini_minute_history[0]["total_token_count"]
+                while len(self.gemini_minute_history) > 0 and datetime.now() >= (
+                    self.gemini_minute_history[0]["timestamp"] + timedelta(minutes=1)
+                ):
+                    self.gemini_tokens_minute_history -= self.gemini_minute_history[0][
+                        "total_token_count"
+                    ]
                     self.gemini_minute_history.pop(0)
 
             if self.gemini_tokens_minute_history >= self.GEMINI_TOKENS_PER_MINUTE:
-                logging.warning("Gemini tokens/minute limit reached. Waiting 60 seconds before next prompt...")
+                logging.warning(
+                    "Gemini tokens/minute limit reached. Waiting 60 seconds before next prompt..."
+                )
                 time.sleep(60)
                 self.gemini_tokens_minute_history = 0
                 self.gemini_minute_history.clear()
@@ -664,19 +781,23 @@ class promptAI:
             response = self.GEMINI_MODEL.generate_content(prompt)
 
             metadata = {
-                "finish_reason": promptAI.GEMINI_FINISH_REASON[response.candidates[0].finish_reason],
+                "finish_reason": promptAI.GEMINI_FINISH_REASON[
+                    response.candidates[0].finish_reason
+                ],
                 "timestamp": datetime.now(),
                 "avg_logprobs": response.candidates[0].avg_logprobs,
                 "total_token_count": response.usage_metadata.total_token_count,
                 "prompt_token_count": response.usage_metadata.prompt_token_count,
                 "candidates_token_count": response.usage_metadata.candidates_token_count,
                 "cached_content_token_count": response.usage_metadata.cached_content_token_count,
-                "model_version": response.model_version
+                "model_version": response.model_version,
             }
 
             self.gemini_minute_history.append(metadata)
             self.gemini_day_history.append(metadata)
-            self.gemini_tokens_minute_history += response.usage_metadata.total_token_count
+            self.gemini_tokens_minute_history += (
+                response.usage_metadata.total_token_count
+            )
 
             log_metadata = metadata.copy()
             log_metadata["timestamp"] = log_metadata["timestamp"].isoformat()
@@ -690,7 +811,9 @@ class promptAI:
             raise
 
         except Exception as e:
-            api_logger.error(f"Gemini - Error encountered during API call on line {e.__traceback__.tb_lineno}.")
+            api_logger.error(
+                f"Gemini - Error encountered during API call on line {e.__traceback__.tb_lineno}."
+            )
             raise
 
     def init_api_history_openai(self):
@@ -720,24 +843,40 @@ class promptAI:
                     record = line.split(" - ")
                     if record[1] == "INFO" and record[2] == "ChatGPT":
                         metadata = json.loads(record[3].strip())
-                        metadata["timestamp"] = datetime.fromisoformat(metadata["timestamp"])
-                        metadata["remaining_budget"] = Decimal(metadata["remaining_budget"])
+                        metadata["timestamp"] = datetime.fromisoformat(
+                            metadata["timestamp"]
+                        )
+                        metadata["remaining_budget"] = Decimal(
+                            metadata["remaining_budget"]
+                        )
 
                         if self.openai_budget is None:
                             self.openai_budget = metadata["remaining_budget"]
 
                             if self.openai_budget <= self.OPENAI_MINIMUM_BALANCE:
-                                raise ValueError(f"ChatGPT - balance below minimum threshold: {self.openai_budget} / {self.OPENAI_MINIMUM_BALANCE}")
+                                raise ValueError(
+                                    f"ChatGPT - balance below minimum threshold: {self.openai_budget} / {self.OPENAI_MINIMUM_BALANCE}"
+                                )
 
-                        if datetime.now() < metadata["timestamp"] + timedelta(minutes=1):
+                        if datetime.now() < metadata["timestamp"] + timedelta(
+                            minutes=1
+                        ):
                             self.openai_minute_history.append(metadata)
-                            self.openai_tokens_minute_history += metadata["total_token_count"]
+                            self.openai_tokens_minute_history += metadata[
+                                "total_token_count"
+                            ]
                         else:
                             break
 
-            api_logger.warning(f"ChatGPT - Starting minute history: {len(self.openai_minute_history)} / {self.OPENAI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute.")
-            api_logger.warning(f"ChatGPT - Starting minute history: {self.openai_tokens_minute_history} / {self.OPENAI_TOKENS_PER_MINUTE_LIMIT} tokens used in the past minute.")
-            api_logger.warning(f"ChatGPT - Starting remaining balance: $ {self.openai_budget}")
+            api_logger.warning(
+                f"ChatGPT - Starting minute history: {len(self.openai_minute_history)} / {self.OPENAI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute."
+            )
+            api_logger.warning(
+                f"ChatGPT - Starting minute history: {self.openai_tokens_minute_history} / {self.OPENAI_TOKENS_PER_MINUTE_LIMIT} tokens used in the past minute."
+            )
+            api_logger.warning(
+                f"ChatGPT - Starting remaining balance: $ {self.openai_budget}"
+            )
             logging.info("ChatGPT - Finished extracting API call history from logs.")
 
         except ValueError as ve:
@@ -745,7 +884,9 @@ class promptAI:
             raise
 
         except Exception as e:
-            logging.exception(f"Fatal error occurred in: promptAI.init_api_history_openai on line {e.__traceback__.tb_lineno}")
+            logging.exception(
+                f"Fatal error occurred in: promptAI.init_api_history_openai on line {e.__traceback__.tb_lineno}"
+            )
             raise
 
     def prompt_chatgpt(self, prompt: list[dict[str, str]]) -> str:
@@ -775,41 +916,74 @@ class promptAI:
             If any unexpected error occurs during the API call or response processing.
         """
         try:
-            logging.info(f"Prompting OpenAI model '{self.OPENAI_MODEL}' with {len(prompt)} message(s)...")
+            logging.info(
+                f"Prompting OpenAI model '{self.OPENAI_MODEL}' with {len(prompt)} message(s)..."
+            )
 
-            while len(self.openai_minute_history) > 0 and datetime.now() >= self.openai_minute_history[0]["timestamp"] + timedelta(minutes=1):
-                self.openai_tokens_minute_history -= self.openai_minute_history[0]["total_token_count"]
+            while len(
+                self.openai_minute_history
+            ) > 0 and datetime.now() >= self.openai_minute_history[0][
+                "timestamp"
+            ] + timedelta(
+                minutes=1
+            ):
+                self.openai_tokens_minute_history -= self.openai_minute_history[0][
+                    "total_token_count"
+                ]
                 self.openai_minute_history.pop(0)
 
             if self.openai_budget <= self.OPENAI_MINIMUM_BALANCE:
-                raise ValueError(f"ChatGPT - balance below minimum threshold: {self.openai_budget} / {self.OPENAI_MINIMUM_BALANCE}")
+                raise ValueError(
+                    f"ChatGPT - balance below minimum threshold: {self.openai_budget} / {self.OPENAI_MINIMUM_BALANCE}"
+                )
 
-            api_logger.warning(f"ChatGPT - Current minute history: {len(self.openai_minute_history)} / {self.OPENAI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute.")
-            api_logger.warning(f"ChatGPT - Current minute history: {self.openai_tokens_minute_history} / {self.OPENAI_TOKENS_PER_MINUTE_LIMIT} tokens used in the past minute.")
-            api_logger.warning(f"ChatGPT - Current remaining balance: $ {self.openai_budget}")
+            api_logger.warning(
+                f"ChatGPT - Current minute history: {len(self.openai_minute_history)} / {self.OPENAI_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute."
+            )
+            api_logger.warning(
+                f"ChatGPT - Current minute history: {self.openai_tokens_minute_history} / {self.OPENAI_TOKENS_PER_MINUTE_LIMIT} tokens used in the past minute."
+            )
+            api_logger.warning(
+                f"ChatGPT - Current remaining balance: $ {self.openai_budget}"
+            )
 
             if len(self.openai_minute_history) == self.OPENAI_REQUESTS_PER_MINUTE_LIMIT:
-                wait_time = self.openai_minute_history[0]["timestamp"] + timedelta(minutes=1) - datetime.now()
-                logging.warning(f"ChatGPT prompts/minute limit reached. Waiting {wait_time} seconds before next prompt...")
+                wait_time = (
+                    self.openai_minute_history[0]["timestamp"]
+                    + timedelta(minutes=1)
+                    - datetime.now()
+                )
+                logging.warning(
+                    f"ChatGPT prompts/minute limit reached. Waiting {wait_time} seconds before next prompt..."
+                )
                 time.sleep(wait_time)
-                self.openai_tokens_minute_history -= self.openai_minute_history[0]["total_token_count"]
+                self.openai_tokens_minute_history -= self.openai_minute_history[0][
+                    "total_token_count"
+                ]
                 self.openai_minute_history.pop(0)
 
-            if self.openai_tokens_minute_history >= self.OPENAI_TOKENS_PER_MINUTE_LIMIT * .9:
-                logging.warning("ChatGPT tokens/minute limit reached. Waiting 60 seconds before next prompt...")
+            if (
+                self.openai_tokens_minute_history
+                >= self.OPENAI_TOKENS_PER_MINUTE_LIMIT * 0.9
+            ):
+                logging.warning(
+                    "ChatGPT tokens/minute limit reached. Waiting 60 seconds before next prompt..."
+                )
                 time.sleep(60)
                 self.openai_tokens_minute_history = 0
                 self.openai_minute_history.clear()
 
             response = self.OPENAI_CLIENT.chat.completions.create(
-                model=self.OPENAI_MODEL,
-                messages=prompt
+                model=self.OPENAI_MODEL, messages=prompt
             ).model_dump()
 
             self.openai_budget -= (
-                self.OPENAI_MODEL_COST_PER_INPUT_TOKEN * response["usage"]["prompt_tokens"]
-                + self.OPENAI_MODEL_COST_PER_CACHE_INPUT_TOKEN * response["usage"]["prompt_tokens_details"]["cached_tokens"]
-                + self.OPENAI_MODEL_COST_PER_OUTPUT_TOKEN * response["usage"]["completion_tokens"]
+                self.OPENAI_MODEL_COST_PER_INPUT_TOKEN
+                * response["usage"]["prompt_tokens"]
+                + self.OPENAI_MODEL_COST_PER_CACHE_INPUT_TOKEN
+                * response["usage"]["prompt_tokens_details"]["cached_tokens"]
+                + self.OPENAI_MODEL_COST_PER_OUTPUT_TOKEN
+                * response["usage"]["completion_tokens"]
             )
 
             metadata = {
@@ -818,9 +992,11 @@ class promptAI:
                 "total_token_count": response["usage"]["total_tokens"],
                 "prompt_token_count": response["usage"]["prompt_tokens"],
                 "candidates_token_count": response["usage"]["completion_tokens"],
-                "cached_content_token_count": response["usage"]["prompt_tokens_details"]["cached_tokens"],
+                "cached_content_token_count": response["usage"][
+                    "prompt_tokens_details"
+                ]["cached_tokens"],
                 "model_version": response["model"],
-                "remaining_budget": self.openai_budget
+                "remaining_budget": self.openai_budget,
             }
 
             self.openai_minute_history.append(metadata)
@@ -839,7 +1015,9 @@ class promptAI:
             raise
 
         except Exception as e:
-            api_logger.error(f"ChatGPT - Error encountered during API call on line {e.__traceback__.tb_lineno}.")
+            api_logger.error(
+                f"ChatGPT - Error encountered during API call on line {e.__traceback__.tb_lineno}."
+            )
             raise
 
     def init_api_history_anthropic(self) -> None:
@@ -870,26 +1048,46 @@ class promptAI:
                     record = line.split(" - ")
                     if record[1] == "INFO" and record[2] == "Claude":
                         metadata = json.loads(record[3].strip())
-                        metadata["timestamp"] = datetime.fromisoformat(metadata["timestamp"])
-                        metadata["remaining_budget"] = Decimal(metadata["remaining_budget"])
+                        metadata["timestamp"] = datetime.fromisoformat(
+                            metadata["timestamp"]
+                        )
+                        metadata["remaining_budget"] = Decimal(
+                            metadata["remaining_budget"]
+                        )
 
                         if self.anthropic_budget is None:
                             self.anthropic_budget = metadata["remaining_budget"]
 
                             if self.anthropic_budget <= self.ANTHROPIC_MINUMUM_BALANCE:
-                                raise ValueError(f"Anthropic balance below minimum threshold: {self.anthropic_budget} / {self.ANTHROPIC_MINUMUM_BALANCE}")
+                                raise ValueError(
+                                    f"Anthropic balance below minimum threshold: {self.anthropic_budget} / {self.ANTHROPIC_MINUMUM_BALANCE}"
+                                )
 
-                        if datetime.now() < metadata["timestamp"] + timedelta(minutes=1):
+                        if datetime.now() < metadata["timestamp"] + timedelta(
+                            minutes=1
+                        ):
                             self.anthropic_minute_history.append(metadata)
-                            self.anthropic_input_tokens_minute_history += metadata["prompt_token_count"]
-                            self.anthropic_output_tokens_minute_history += metadata["candidates_token_count"]
+                            self.anthropic_input_tokens_minute_history += metadata[
+                                "prompt_token_count"
+                            ]
+                            self.anthropic_output_tokens_minute_history += metadata[
+                                "candidates_token_count"
+                            ]
                         else:
                             break
 
-            api_logger.warning(f"Claude - Starting minute history: {len(self.anthropic_minute_history)} / {self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute.")
-            api_logger.warning(f"Claude - Starting minute history: {self.anthropic_input_tokens_minute_history} / {self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT} input tokens used in the past minute.")
-            api_logger.warning(f"Claude - Starting minute history: {self.anthropic_output_tokens_minute_history} / {self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT} output tokens used in the past minute.")
-            api_logger.warning(f"Claude - Starting remaining balance: $ {self.anthropic_budget}")
+            api_logger.warning(
+                f"Claude - Starting minute history: {len(self.anthropic_minute_history)} / {self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute."
+            )
+            api_logger.warning(
+                f"Claude - Starting minute history: {self.anthropic_input_tokens_minute_history} / {self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT} input tokens used in the past minute."
+            )
+            api_logger.warning(
+                f"Claude - Starting minute history: {self.anthropic_output_tokens_minute_history} / {self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT} output tokens used in the past minute."
+            )
+            api_logger.warning(
+                f"Claude - Starting remaining balance: $ {self.anthropic_budget}"
+            )
 
             logging.info("Claude - Finished extracting API call history from logs.")
 
@@ -898,10 +1096,14 @@ class promptAI:
             raise
 
         except Exception as e:
-            logging.exception(f"Fatal error occurred in: promptAI.init_api_history_anthropic on line {e.__traceback__.tb_lineno}")
+            logging.exception(
+                f"Fatal error occurred in: promptAI.init_api_history_anthropic on line {e.__traceback__.tb_lineno}"
+            )
             raise
 
-    def prompt_anthropic(self, prompt: list[dict[str, str]], system_instruction: str = "") -> str:
+    def prompt_anthropic(
+        self, prompt: list[dict[str, str]], system_instruction: str = ""
+    ) -> str:
         """
         prompt_anthropic: Sends a structured conversation prompt to the Claude model and returns the generated response.
 
@@ -931,35 +1133,85 @@ class promptAI:
             If an unexpected error occurs during the API call or response handling.
         """
         try:
-            logging.info(f"Prompting Anthropic model '{self.ANTHROPIC_MODEL}' with {len(prompt)} message(s)...")
+            logging.info(
+                f"Prompting Anthropic model '{self.ANTHROPIC_MODEL}' with {len(prompt)} message(s)..."
+            )
 
-            while len(self.anthropic_minute_history) > 0 and datetime.now() >= self.anthropic_minute_history[0]["timestamp"] + timedelta(minutes=1):
-                self.anthropic_input_tokens_minute_history -= self.anthropic_minute_history[0]["prompt_token_count"]
-                self.anthropic_output_tokens_minute_history -= self.anthropic_minute_history[0]["candidates_token_count"]
+            while len(
+                self.anthropic_minute_history
+            ) > 0 and datetime.now() >= self.anthropic_minute_history[0][
+                "timestamp"
+            ] + timedelta(
+                minutes=1
+            ):
+                self.anthropic_input_tokens_minute_history -= (
+                    self.anthropic_minute_history[0]["prompt_token_count"]
+                )
+                self.anthropic_output_tokens_minute_history -= (
+                    self.anthropic_minute_history[0]["candidates_token_count"]
+                )
                 self.anthropic_minute_history.pop(0)
 
             if self.anthropic_budget <= self.OPENAI_MINIMUM_BALANCE:
-                raise ValueError(f"Claude - balance below minimum threshold: {self.anthropic_budget} / {self.ANTHROPIC_MINUMUM_BALANCE}")
+                raise ValueError(
+                    f"Claude - balance below minimum threshold: {self.anthropic_budget} / {self.ANTHROPIC_MINUMUM_BALANCE}"
+                )
 
-            api_logger.warning(f"Claude - Current minute history: {len(self.anthropic_minute_history)} / {self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute.")
-            api_logger.warning(f"Claude - Current minute history: {self.anthropic_input_tokens_minute_history} / {self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT} input tokens used in the past minute.")
-            api_logger.warning(f"Claude - Current minute history: {self.anthropic_output_tokens_minute_history} / {self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT} output tokens used in the past minute.")
-            api_logger.warning(f"Claude - Current remaining balance: $ {self.anthropic_budget}")
+            api_logger.warning(
+                f"Claude - Current minute history: {len(self.anthropic_minute_history)} / {self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT} prompts used in the past minute."
+            )
+            api_logger.warning(
+                f"Claude - Current minute history: {self.anthropic_input_tokens_minute_history} / {self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT} input tokens used in the past minute."
+            )
+            api_logger.warning(
+                f"Claude - Current minute history: {self.anthropic_output_tokens_minute_history} / {self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT} output tokens used in the past minute."
+            )
+            api_logger.warning(
+                f"Claude - Current remaining balance: $ {self.anthropic_budget}"
+            )
 
-            if len(self.anthropic_minute_history) >= self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT:
-                wait_time = self.anthropic_minute_history[0]["timestamp"] + timedelta(minutes=1) - datetime.now()
-                logging.warning(f"Claude prompts/minute limit reached. Waiting {wait_time} seconds before next prompt...")
+            if (
+                len(self.anthropic_minute_history)
+                >= self.ANTHROPIC_REQUESTS_PER_MINUTE_LIMIT
+            ):
+                wait_time = (
+                    self.anthropic_minute_history[0]["timestamp"]
+                    + timedelta(minutes=1)
+                    - datetime.now()
+                )
+                logging.warning(
+                    f"Claude prompts/minute limit reached. Waiting {wait_time} seconds before next prompt..."
+                )
                 time.sleep(wait_time)
-                self.anthropic_input_tokens_minute_history -= self.anthropic_minute_history[0]["prompt_token_count"]
-                self.anthropic_output_tokens_minute_history -= self.anthropic_minute_history[0]["candidates_token_count"]
+                self.anthropic_input_tokens_minute_history -= (
+                    self.anthropic_minute_history[0]["prompt_token_count"]
+                )
+                self.anthropic_output_tokens_minute_history -= (
+                    self.anthropic_minute_history[0]["candidates_token_count"]
+                )
                 self.anthropic_minute_history.pop(0)
 
-            while self.anthropic_input_tokens_minute_history >= self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT * .9 or self.anthropic_output_tokens_minute_history >= self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT * .9:
-                wait_time = self.anthropic_minute_history[0]["timestamp"] + timedelta(minutes=1) - datetime.now()
-                logging.warning(f"Claude tokens/minute limit reached. Waiting {wait_time} seconds before next prompt...")
+            while (
+                self.anthropic_input_tokens_minute_history
+                >= self.ANTHROPIC_INPUT_TOKENS_PER_MINUTE_LIMIT * 0.9
+                or self.anthropic_output_tokens_minute_history
+                >= self.ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT * 0.9
+            ):
+                wait_time = (
+                    self.anthropic_minute_history[0]["timestamp"]
+                    + timedelta(minutes=1)
+                    - datetime.now()
+                )
+                logging.warning(
+                    f"Claude tokens/minute limit reached. Waiting {wait_time} seconds before next prompt..."
+                )
                 time.sleep(wait_time)
-                self.anthropic_input_tokens_minute_history -= self.anthropic_minute_history[0]["prompt_token_count"]
-                self.anthropic_output_tokens_minute_history -= self.anthropic_minute_history[0]["candidates_token_count"]
+                self.anthropic_input_tokens_minute_history -= (
+                    self.anthropic_minute_history[0]["prompt_token_count"]
+                )
+                self.anthropic_output_tokens_minute_history -= (
+                    self.anthropic_minute_history[0]["candidates_token_count"]
+                )
                 self.anthropic_minute_history.pop(0)
 
             timestamp = datetime.now().replace(microsecond=0)
@@ -968,31 +1220,42 @@ class promptAI:
                 model=config("ANTHROPIC_MODEL"),
                 system=system_instruction,
                 max_tokens=int(config("ANTHROPIC_OUTPUT_TOKENS_PER_MINUTE_LIMIT")),
-                messages=prompt
+                messages=prompt,
             ).model_dump()
 
             self.anthropic_budget -= (
-                self.ANTHROPIC_MODEL_COST_PER_INPUT_TOKEN * response["usage"]["input_tokens"]
-                + self.ANTHROPIC_MODEL_COST_PER_CACHE_WRITE_TOKEN * response["usage"]["cache_creation_input_tokens"]
-                + self.ANTHROPIC_MODEL_COST_PER_CACHE_READ_TOKEN * response["usage"]["cache_read_input_tokens"]
-                + self.ANTHROPIC_MODEL_COST_PER_OUTPUT_TOKEN * response["usage"]["output_tokens"]
+                self.ANTHROPIC_MODEL_COST_PER_INPUT_TOKEN
+                * response["usage"]["input_tokens"]
+                + self.ANTHROPIC_MODEL_COST_PER_CACHE_WRITE_TOKEN
+                * response["usage"]["cache_creation_input_tokens"]
+                + self.ANTHROPIC_MODEL_COST_PER_CACHE_READ_TOKEN
+                * response["usage"]["cache_read_input_tokens"]
+                + self.ANTHROPIC_MODEL_COST_PER_OUTPUT_TOKEN
+                * response["usage"]["output_tokens"]
             )
 
             metadata = {
                 "finish_reason": response["stop_reason"],
                 "timestamp": timestamp,
-                "total_token_count": response["usage"]["input_tokens"] + response["usage"]["output_tokens"],
+                "total_token_count": response["usage"]["input_tokens"]
+                + response["usage"]["output_tokens"],
                 "prompt_token_count": response["usage"]["input_tokens"],
                 "candidates_token_count": response["usage"]["output_tokens"],
-                "written_cached_content_token_count": response["usage"]["cache_creation_input_tokens"],
-                "read_cached_content_token_count": response["usage"]["cache_read_input_tokens"],
+                "written_cached_content_token_count": response["usage"][
+                    "cache_creation_input_tokens"
+                ],
+                "read_cached_content_token_count": response["usage"][
+                    "cache_read_input_tokens"
+                ],
                 "model_version": response["model"],
                 "remaining_budget": self.anthropic_budget,
             }
 
             self.anthropic_minute_history.append(metadata)
             self.anthropic_input_tokens_minute_history += metadata["prompt_token_count"]
-            self.anthropic_output_tokens_minute_history += metadata["candidates_token_count"]
+            self.anthropic_output_tokens_minute_history += metadata[
+                "candidates_token_count"
+            ]
 
             log_metadata = metadata.copy()
             log_metadata["timestamp"] = log_metadata["timestamp"].isoformat()
@@ -1007,7 +1270,9 @@ class promptAI:
             raise
 
         except Exception as e:
-            api_logger.error(f"Claude - Error encountered during API call on line {e.__traceback__.tb_lineno}.")
+            api_logger.error(
+                f"Claude - Error encountered during API call on line {e.__traceback__.tb_lineno}."
+            )
             raise
 
     def prompt_ollama(self, prompt: list[dict[str, str]], ollama_model: str) -> str:
@@ -1036,15 +1301,20 @@ class promptAI:
             If an unexpected error occurs during the API call or response processing.
         """
         try:
-            logging.info(f"Prompting Ollama model '{ollama_model}' with {len(prompt)} message(s)...")
+            logging.info(
+                f"Prompting Ollama model '{ollama_model}' with {len(prompt)} message(s)..."
+            )
 
             timestamp = datetime.now().replace(microsecond=0)
-            response = self.OLLAMA_CLIENT.chat(model=ollama_model, messages=prompt).model_dump()
+            response = self.OLLAMA_CLIENT.chat(
+                model=ollama_model, messages=prompt
+            ).model_dump()
 
             metadata = {
                 "finish_reason": response["done_reason"],
                 "timestamp": timestamp,
-                "total_token_count": response["prompt_eval_count"] + response["eval_count"],
+                "total_token_count": response["prompt_eval_count"]
+                + response["eval_count"],
                 "prompt_token_count": response["prompt_eval_count"],
                 "candidates_token_count": response["eval_count"],
                 "model_version": response["model"],
@@ -1058,12 +1328,20 @@ class promptAI:
             response_text = response["message"]["content"]
 
             if response_text.find("<think>") != -1:
-                response_text = response_text.replace(response_text[response_text.find("<think>"): response_text.find("</think>") + 10], "")
+                response_text = response_text.replace(
+                    response_text[
+                        response_text.find("<think>") : response_text.find("</think>")
+                        + 10
+                    ],
+                    "",
+                )
 
             return response_text
 
         except Exception as e:
-            api_logger.error(f"Ollama - Error encountered during API call on line {e.__traceback__.tb_lineno}.")
+            api_logger.error(
+                f"Ollama - Error encountered during API call on line {e.__traceback__.tb_lineno}."
+            )
             raise
 
     def init_api_history_grok(self):
@@ -1089,18 +1367,26 @@ class promptAI:
                     record = line.split(" - ")
                     if record[1] == "INFO" and record[2] == "Grok":
                         metadata = json.loads(record[3].strip())
-                        metadata["timestamp"] = datetime.fromisoformat(metadata["timestamp"])
-                        metadata["remaining_budget"] = Decimal(metadata["remaining_budget"])
+                        metadata["timestamp"] = datetime.fromisoformat(
+                            metadata["timestamp"]
+                        )
+                        metadata["remaining_budget"] = Decimal(
+                            metadata["remaining_budget"]
+                        )
 
                         if self.grok_budget is None:
                             self.grok_budget = Decimal(metadata["remaining_budget"])
 
                             if self.grok_budget <= self.GROK_MINIMUM_BALANCE:
-                                raise ValueError(f"Grok - balance below minimum threshold: {self.grok_budget} / {self.GROK_MINIMUM_BALANCE}")
+                                raise ValueError(
+                                    f"Grok - balance below minimum threshold: {self.grok_budget} / {self.GROK_MINIMUM_BALANCE}"
+                                )
 
                         break
 
-            api_logger.warning(f"Grok - Starting remaining balance: $ {self.grok_budget}")
+            api_logger.warning(
+                f"Grok - Starting remaining balance: $ {self.grok_budget}"
+            )
             logging.info("Grok - Finished extracting API call history from logs.")
 
         except ValueError as ve:
@@ -1108,7 +1394,9 @@ class promptAI:
             raise
 
         except Exception as e:
-            logging.exception(f"Fatal error occurred in: promptAI.init_api_history_grok on line {e.__traceback__.tb_lineno}")
+            logging.exception(
+                f"Fatal error occurred in: promptAI.init_api_history_grok on line {e.__traceback__.tb_lineno}"
+            )
             raise
 
     def prompt_grok(self, prompt: list[dict[str, str]]) -> str:
@@ -1138,21 +1426,28 @@ class promptAI:
             If any unexpected error occurs during the API call or response handling.
         """
         try:
-            logging.info(f"Prompting Grok model '{self.GROK_MODEL}' with {len(prompt)} message(s)...")
+            logging.info(
+                f"Prompting Grok model '{self.GROK_MODEL}' with {len(prompt)} message(s)..."
+            )
 
             if self.grok_budget <= self.GROK_MINIMUM_BALANCE:
-                raise ValueError(f"Grok - balance below minimum threshold: {self.grok_budget} / {self.GROK_MINIMUM_BALANCE}")
+                raise ValueError(
+                    f"Grok - balance below minimum threshold: {self.grok_budget} / {self.GROK_MINIMUM_BALANCE}"
+                )
 
-            api_logger.warning(f"Grok - Current remaining balance: $ {self.grok_budget}")
+            api_logger.warning(
+                f"Grok - Current remaining balance: $ {self.grok_budget}"
+            )
 
             response = self.GROK_CLIENT.chat.completions.create(
-                model=self.GROK_MODEL,
-                messages=prompt
+                model=self.GROK_MODEL, messages=prompt
             ).model_dump()
 
             self.grok_budget -= (
-                self.GROK_MODEL_COST_PER_INPUT_TOKEN * response["usage"]["prompt_tokens"]
-                + self.GROK_MODEL_COST_PER_OUTPUT_TOKEN * response["usage"]["completion_tokens"]
+                self.GROK_MODEL_COST_PER_INPUT_TOKEN
+                * response["usage"]["prompt_tokens"]
+                + self.GROK_MODEL_COST_PER_OUTPUT_TOKEN
+                * response["usage"]["completion_tokens"]
             )
 
             metadata = {
@@ -1162,7 +1457,7 @@ class promptAI:
                 "prompt_token_count": response["usage"]["prompt_tokens"],
                 "candidates_token_count": response["usage"]["completion_tokens"],
                 "model_version": response["model"],
-                "remaining_budget": self.grok_budget
+                "remaining_budget": self.grok_budget,
             }
 
             log_metadata = metadata.copy()
@@ -1171,10 +1466,14 @@ class promptAI:
 
             api_logger.info(f"Grok - {json.dumps(log_metadata)}")
 
-            if metadata["total_token_count"] >= self.GROK_MODEL_CONTEXT_LIMIT * .9:
-                api_logger.warning(f"Grok - Approaching context limit per prompt: {metadata["total_token_count"]} / {self.GROK_MODEL_CONTEXT_LIMIT}")
-            elif metadata["total_token_count"] >= self.GROK_MODEL_CONTEXT_LIMIT * .9:
-                api_logger.error(f"Grok - Context limit per prompt reached: {metadata["total_token_count"]} / {self.GROK_MODEL_CONTEXT_LIMIT}")
+            if metadata["total_token_count"] >= self.GROK_MODEL_CONTEXT_LIMIT * 0.9:
+                api_logger.warning(
+                    f"Grok - Approaching context limit per prompt: {metadata["total_token_count"]} / {self.GROK_MODEL_CONTEXT_LIMIT}"
+                )
+            elif metadata["total_token_count"] >= self.GROK_MODEL_CONTEXT_LIMIT * 0.9:
+                api_logger.error(
+                    f"Grok - Context limit per prompt reached: {metadata["total_token_count"]} / {self.GROK_MODEL_CONTEXT_LIMIT}"
+                )
 
             return response["choices"][0]["message"]["content"]
 
@@ -1183,7 +1482,9 @@ class promptAI:
             raise
 
         except Exception as e:
-            api_logger.error(f"Grok - Error encountered during API call on line {e.__traceback__.tb_lineno}.")
+            api_logger.error(
+                f"Grok - Error encountered during API call on line {e.__traceback__.tb_lineno}."
+            )
             raise
 
 
@@ -1221,7 +1522,9 @@ class genAI:
         logging.info("Parsing command-line arguments to extract assignment ID...")
         self.get_assignment_id_from_args(cmd_args)
 
-        logging.info(f"Querying database for assignment with ID: {self.assignment_id}...")
+        logging.info(
+            f"Querying database for assignment with ID: {self.assignment_id}..."
+        )
         self.query_assignments_assignments()
 
         logging.info("Loading assignment PDF and preparing for Gemini prompting...")
@@ -1243,7 +1546,9 @@ class genAI:
         self.anthropic_generate_code()
 
         for count, model in enumerate(self.promptAI.OLLAMA_MODELS):
-            logging.info(f"Prompting Ollama model '{model}', ({count + 1} / {len(self.promptAI.OLLAMA_MODELS)})")
+            logging.info(
+                f"Prompting Ollama model '{model}', ({count + 1} / {len(self.promptAI.OLLAMA_MODELS)})"
+            )
 
             logging.info("Loading assignment PDF and preparing for Ollama prompting...")
             self.ollama_process_assignment_pdf(model)
@@ -1257,9 +1562,15 @@ class genAI:
         logging.info("Prompting Grok to generate code...")
         self.grok_generate_code()
 
-        logging.warning(f"ChatGPT - Ending budget: $ {self.promptAI.openai_budget if self.promptAI.openai_budget is not None else "NULL"}")
-        logging.warning(f"Claude - Ending budget: $ {self.promptAI.anthropic_budget if self.promptAI.anthropic_budget is not None else "NULL"}")
-        logging.warning(f"Grok - Ending budget: $ {self.promptAI.grok_budget if self.promptAI.grok_budget is not None else "NULL"}")
+        logging.warning(
+            f"ChatGPT - Ending budget: $ {self.promptAI.openai_budget if self.promptAI.openai_budget is not None else "NULL"}"
+        )
+        logging.warning(
+            f"Claude - Ending budget: $ {self.promptAI.anthropic_budget if self.promptAI.anthropic_budget is not None else "NULL"}"
+        )
+        logging.warning(
+            f"Grok - Ending budget: $ {self.promptAI.grok_budget if self.promptAI.grok_budget is not None else "NULL"}"
+        )
 
         logging.info("AI code generation process completed successfully.")
 
@@ -1311,13 +1622,19 @@ class genAI:
         """
         try:
             if len(args) != 2:
-                raise RuntimeError(f"Invalid number of command-line arguments: received {len(args)}, expected 2.\n"
-                                   "Usage: python3 prompt_AI.py <assignment_id>")
+                raise RuntimeError(
+                    f"Invalid number of command-line arguments: received {len(args)}, expected 2.\n"
+                    "Usage: python3 prompt_AI.py <assignment_id>"
+                )
             if not args[1].isnumeric():
-                raise RuntimeError(f"Invalid assignment ID: received '{args[1]}', expected an integer.\n"
-                                   "Usage: python3 prompt_AI.py <assignment_id>")
+                raise RuntimeError(
+                    f"Invalid assignment ID: received '{args[1]}', expected an integer.\n"
+                    "Usage: python3 prompt_AI.py <assignment_id>"
+                )
 
-            logging.info("Successfully extracted assignment_id from command-line arguments.")
+            logging.info(
+                "Successfully extracted assignment_id from command-line arguments."
+            )
             self.assignment_id = int(args[1])
 
         except Exception:
@@ -1348,10 +1665,15 @@ class genAI:
         """
         try:
             columns = "assignment_number, pdf_filepath, has_base_code,  bulk_ai_directory_path, language"
-            result = pd.read_sql(f"SELECT {columns} FROM assignments_assignments WHERE id = {self.assignment_id}", ENGINE)
+            result = pd.read_sql(
+                f"SELECT {columns} FROM assignments_assignments WHERE id = {self.assignment_id}",
+                ENGINE,
+            )
 
             if not len(result):
-                raise RuntimeError(f"Assignment_id '{self.assignment_id}' does not match any records in the database.")
+                raise RuntimeError(
+                    f"Assignment_id '{self.assignment_id}' does not match any records in the database."
+                )
 
             if len(result) != 1:
                 raise RuntimeError(f"Expected exactly one row, got {len(result)}.")
@@ -1401,7 +1723,9 @@ class genAI:
 
         try:
             if self.raw_pdf is None:
-                logging.info("Loading assignment PDF and converting to markdown using pymupdf4llm...")
+                logging.info(
+                    "Loading assignment PDF and converting to markdown using pymupdf4llm..."
+                )
                 self.raw_pdf = pymupdf4llm.to_markdown(self.pdf_path)
 
             logging.info("Building the prompt's content...")
@@ -1413,12 +1737,16 @@ class genAI:
             pdf_text_elem = etree.SubElement(prompt_elem, "PDF_text")
             pdf_text_elem.text = self.raw_pdf
 
-            prompt = etree.tostring(prompt_elem, pretty_print=True, encoding='utf-8').decode('utf-8')
+            prompt = etree.tostring(
+                prompt_elem, pretty_print=True, encoding="utf-8"
+            ).decode("utf-8")
 
             logging.info("Prompting Gemini to refine markdown text...")
             self.processed_pdf = self.promptAI.prompt_gemini(prompt)[8:]
 
-            logging.info("Successfully loaded and prepared the assignment PDF's text for prompting.")
+            logging.info(
+                "Successfully loaded and prepared the assignment PDF's text for prompting."
+            )
 
         except Exception:
             logging.exception(f"Fatal error occurred in: {self.get_current_scope()}")
@@ -1460,64 +1788,105 @@ class genAI:
         )
 
         try:
-            ai_submission_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
-            test_cases_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            ai_submission_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
+            )
+            test_cases_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            )
 
             logging.info("Gathering context for prompt to Gemini...")
 
             for cycle in range(0, 2):
-                logging.info(f"Gemini - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code...")
+                logging.info(
+                    f"Gemini - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code..."
+                )
 
                 prompt_elem = etree.Element("prompt")
 
                 instructions = etree.SubElement(prompt_elem, "instructions")
-                instructions.text = f"You are an expert {self.language} programmer. " + code_gen_prompt
+                instructions.text = (
+                    f"You are an expert {self.language} programmer. " + code_gen_prompt
+                )
 
                 PDF_text = etree.SubElement(prompt_elem, "PDF")
                 PDF_text.text = self.processed_pdf if cycle == 0 else self.raw_pdf
 
                 if test_cases_path.exists() and test_cases_path.is_dir():
                     for iter, path in enumerate(test_cases_path.iterdir()):
-                        test_case = etree.SubElement(prompt_elem, f"test_case_{iter + 1}")
+                        test_case = etree.SubElement(
+                            prompt_elem, f"test_case_{iter + 1}"
+                        )
 
-                        with open(path / "console_command.txt", mode="r", encoding="UTF-8") as file:
-                            console_command = etree.SubElement(test_case, "console_command")
+                        with open(
+                            path / "console_command.txt", mode="r", encoding="UTF-8"
+                        ) as file:
+                            console_command = etree.SubElement(
+                                test_case, "console_command"
+                            )
                             console_command.text = file.read()
 
-                        with open(path / "console_input.txt", mode="r", encoding="UTF-8") as file:
+                        with open(
+                            path / "console_input.txt", mode="r", encoding="UTF-8"
+                        ) as file:
                             console_input = etree.SubElement(test_case, "console_input")
                             console_input.text = file.read()
 
-                        with open(path / "expected_console_output.txt", mode="r", encoding="UTF-8") as file:
-                            console_output = etree.SubElement(test_case, "expected_console_output")
+                        with open(
+                            path / "expected_console_output.txt",
+                            mode="r",
+                            encoding="UTF-8",
+                        ) as file:
+                            console_output = etree.SubElement(
+                                test_case, "expected_console_output"
+                            )
                             console_output.text = file.read()
 
                         if any((path / "input_files").iterdir()):
                             input_files = etree.SubElement(test_case, "input_files")
                             for input_path in (path / "input_files").iterdir():
-                                with open(input_path, mode="r", encoding="UTF-8") as file:
-                                    input_file = etree.SubElement(input_files, f"{input_path.name}")
+                                with open(
+                                    input_path, mode="r", encoding="UTF-8"
+                                ) as file:
+                                    input_file = etree.SubElement(
+                                        input_files, f"{input_path.name}"
+                                    )
                                     input_file.text = file.read()
 
                         if any((path / "output_files").iterdir()):
                             output_files = etree.SubElement(test_case, "output_files")
                             for output_path in (path / "output_files").iterdir():
-                                with open(output_path, mode="r", encoding="UTF-8") as file:
-                                    output_file = etree.SubElement(output_files, f"{output_path.name}")
+                                with open(
+                                    output_path, mode="r", encoding="UTF-8"
+                                ) as file:
+                                    output_file = etree.SubElement(
+                                        output_files, f"{output_path.name}"
+                                    )
                                     output_file.text = file.read()
 
-                prompt = etree.tostring(prompt_elem, pretty_print=True, encoding='utf-8').decode('utf-8')
+                prompt = etree.tostring(
+                    prompt_elem, pretty_print=True, encoding="utf-8"
+                ).decode("utf-8")
 
                 for count in range(1, 6):
-                    logging.info(f"Gemini - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5")
-                    output_path = ai_submission_path / f"{self.promptAI.GEMINI_MODEL_NAME}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    logging.info(
+                        f"Gemini - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5"
+                    )
+                    output_path = (
+                        ai_submission_path
+                        / f"{self.promptAI.GEMINI_MODEL_NAME}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    )
                     output_path.mkdir(parents=True, exist_ok=True)
-                    with open(output_path / "main.cpp", mode="w", encoding="UTF-8") as file:
+                    with open(
+                        output_path / "main.cpp", mode="w", encoding="UTF-8"
+                    ) as file:
                         program = self.promptAI.prompt_gemini(prompt)
                         index_opening = program.find("```")
                         if index_opening != -1:
                             index_shift = program.find("\n", index_opening)
-                            program = program[index_opening + 7: program.find("```", index_shift)]
+                            program = program[
+                                index_opening + 7 : program.find("```", index_shift)
+                            ]
                         file.write(program)
 
         except Exception:
@@ -1554,7 +1923,9 @@ class genAI:
             prompt = list()
 
             if self.raw_pdf is None:
-                logging.info("Loading assignment PDF and converting to markdown using pymupdf4llm...")
+                logging.info(
+                    "Loading assignment PDF and converting to markdown using pymupdf4llm..."
+                )
                 self.raw_pdf = pymupdf4llm.to_markdown(self.pdf_path)
 
             logging.info("Building the prompt's content...")
@@ -1564,7 +1935,9 @@ class genAI:
             logging.info("Prompting ChatGPT to refine markdown text...")
             self.processed_pdf = self.promptAI.prompt_chatgpt(prompt)
 
-            logging.info("Successfully loaded and prepared the assignment PDF's text for prompting.")
+            logging.info(
+                "Successfully loaded and prepared the assignment PDF's text for prompting."
+            )
 
         except Exception:
             logging.exception(f"Fatal error occurred in: {self.get_current_scope()}")
@@ -1620,8 +1993,12 @@ class genAI:
         )
 
         try:
-            ai_submission_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
-            test_cases_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            ai_submission_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
+            )
+            test_cases_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            )
 
             logging.info("Gathering context for prompt to ChatGPT...")
 
@@ -1630,13 +2007,19 @@ class genAI:
             for iter, path in enumerate(test_cases_path.iterdir()):
                 case = dict()
 
-                with open(path / "console_command.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_command.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_command"] = file.read()
 
-                with open(path / "console_input.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_input.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_input"] = file.read()
 
-                with open(path / "expected_console_output.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "expected_console_output.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["expected_console_output.txt"] = file.read()
 
                 if any((path / "input_files").iterdir()):
@@ -1656,28 +2039,61 @@ class genAI:
                 test_cases[f"test_case_{iter}"] = case
 
             for cycle in range(0, 2):
-                logging.info(f"ChatGPT - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code...")
+                logging.info(
+                    f"ChatGPT - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code..."
+                )
                 prompt = list()
 
                 prompt.append({"role": "system", "content": system_message})
                 prompt.append({"role": "user", "content": code_gen_instructions})
-                prompt.append({"role": "assistant", "content": "Instructions received. Ready for assignment description."})
-                prompt.append({"role": "user", "content": self.processed_pdf if cycle == 0 else self.raw_pdf})
-                prompt.append({"role": "assistant", "content": "Assignment description received. Ready for test cases."})
-                prompt.append({"role": "user", "content": json.dumps(test_cases, indent=4)})
-                prompt.append({"role": "assistant", "content": "Test cases received. Ready to generate code."})
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Instructions received. Ready for assignment description.",
+                    }
+                )
+                prompt.append(
+                    {
+                        "role": "user",
+                        "content": self.processed_pdf if cycle == 0 else self.raw_pdf,
+                    }
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Assignment description received. Ready for test cases.",
+                    }
+                )
+                prompt.append(
+                    {"role": "user", "content": json.dumps(test_cases, indent=4)}
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Test cases received. Ready to generate code.",
+                    }
+                )
                 prompt.append({"role": "user", "content": code_gen_conclusion})
 
                 for count in range(1, 6):
-                    logging.info(f"ChatGPT - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5")
-                    output_path = ai_submission_path / f"{self.promptAI.OPENAI_MODEL}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    logging.info(
+                        f"ChatGPT - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5"
+                    )
+                    output_path = (
+                        ai_submission_path
+                        / f"{self.promptAI.OPENAI_MODEL}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    )
                     output_path.mkdir(parents=True, exist_ok=True)
-                    with open(output_path / "main.cpp", mode="w", encoding="UTF-8") as file:
+                    with open(
+                        output_path / "main.cpp", mode="w", encoding="UTF-8"
+                    ) as file:
                         program = self.promptAI.prompt_chatgpt(prompt)
                         index_opening = program.find("```")
                         if index_opening != -1:
                             index_shift = program.find("\n", index_opening)
-                            program = program[index_opening + 7: program.find("```", index_shift)]
+                            program = program[
+                                index_opening + 7 : program.find("```", index_shift)
+                            ]
                         file.write(program)
 
         except Exception:
@@ -1715,16 +2131,22 @@ class genAI:
             prompt = list()
 
             if self.raw_pdf is None:
-                logging.info("Loading assignment PDF and converting to markdown using pymupdf4llm...")
+                logging.info(
+                    "Loading assignment PDF and converting to markdown using pymupdf4llm..."
+                )
                 self.raw_pdf = pymupdf4llm.to_markdown(self.pdf_path)
 
             logging.info("Building the prompt's content...")
             prompt.append({"role": "user", "content": self.raw_pdf})
 
             logging.info("Prompting Claude to refine markdown text...")
-            self.processed_pdf = self.promptAI.prompt_anthropic(prompt, system_instructions)
+            self.processed_pdf = self.promptAI.prompt_anthropic(
+                prompt, system_instructions
+            )
 
-            logging.info("Successfully loaded and prepared the assignment PDF's text for prompting using Claude.")
+            logging.info(
+                "Successfully loaded and prepared the assignment PDF's text for prompting using Claude."
+            )
 
         except Exception:
             logging.exception(f"Fatal error occurred in: {self.get_current_scope()}")
@@ -1768,8 +2190,12 @@ class genAI:
         )
 
         try:
-            ai_submission_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
-            test_cases_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            ai_submission_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
+            )
+            test_cases_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            )
 
             logging.info("Gathering context for prompt to Claude...")
 
@@ -1777,13 +2203,19 @@ class genAI:
             for iter, path in enumerate(test_cases_path.iterdir()):
                 case = dict()
 
-                with open(path / "console_command.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_command.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_command"] = file.read()
 
-                with open(path / "console_input.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_input.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_input"] = file.read()
 
-                with open(path / "expected_console_output.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "expected_console_output.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["expected_console_output.txt"] = file.read()
 
                 if any((path / "input_files").iterdir()):
@@ -1803,25 +2235,55 @@ class genAI:
                 test_cases[f"test_case_{iter}"] = case
 
             for cycle in range(0, 2):
-                logging.info(f"Claude - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code...")
+                logging.info(
+                    f"Claude - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code..."
+                )
                 prompt = list()
 
-                prompt.append({"role": "user", "content": self.processed_pdf if cycle == 0 else self.raw_pdf})
-                prompt.append({"role": "assistant", "content": "Assignment description received. Ready for test cases."})
-                prompt.append({"role": "user", "content": json.dumps(test_cases, indent=4)})
-                prompt.append({"role": "assistant", "content": "Test cases received. Ready to generate code."})
+                prompt.append(
+                    {
+                        "role": "user",
+                        "content": self.processed_pdf if cycle == 0 else self.raw_pdf,
+                    }
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Assignment description received. Ready for test cases.",
+                    }
+                )
+                prompt.append(
+                    {"role": "user", "content": json.dumps(test_cases, indent=4)}
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Test cases received. Ready to generate code.",
+                    }
+                )
                 prompt.append({"role": "user", "content": code_gen_conclusion})
 
                 for count in range(1, 6):
-                    logging.info(f"Claude - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5")
-                    output_path = ai_submission_path / f"{self.promptAI.ANTHROPIC_MODEL}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    logging.info(
+                        f"Claude - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5"
+                    )
+                    output_path = (
+                        ai_submission_path
+                        / f"{self.promptAI.ANTHROPIC_MODEL}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    )
                     output_path.mkdir(parents=True, exist_ok=True)
-                    with open(output_path / "main.cpp", mode="w", encoding="UTF-8") as file:
-                        program = self.promptAI.prompt_anthropic(prompt, system_instructions)
+                    with open(
+                        output_path / "main.cpp", mode="w", encoding="UTF-8"
+                    ) as file:
+                        program = self.promptAI.prompt_anthropic(
+                            prompt, system_instructions
+                        )
                         index_opening = program.find("```")
                         if index_opening != -1:
                             index_shift = program.find("\n", index_opening)
-                            program = program[index_opening + 7: program.find("```", index_shift)]
+                            program = program[
+                                index_opening + 7 : program.find("```", index_shift)
+                            ]
                         file.write(program)
 
         except Exception:
@@ -1865,7 +2327,9 @@ class genAI:
             prompt = list()
 
             if self.raw_pdf is None:
-                logging.info("Loading assignment PDF and converting to markdown using pymupdf4llm...")
+                logging.info(
+                    "Loading assignment PDF and converting to markdown using pymupdf4llm..."
+                )
                 self.raw_pdf = pymupdf4llm.to_markdown(self.pdf_path)
 
             logging.info("Building the prompt's content...")
@@ -1876,10 +2340,14 @@ class genAI:
             logging.info("Prompting Ollama to refine markdown text...")
             self.processed_pdf = self.promptAI.prompt_ollama(prompt, model)
 
-            with open(f"processed_pdf_ollama_{model}.txt", mode="w", encoding="UTF-8") as file:
+            with open(
+                f"processed_pdf_ollama_{model}.txt", mode="w", encoding="UTF-8"
+            ) as file:
                 file.write(self.processed_pdf)
 
-            logging.info("Successfully loaded and prepared the assignment PDF's text for prompting using Ollama.")
+            logging.info(
+                "Successfully loaded and prepared the assignment PDF's text for prompting using Ollama."
+            )
 
         except Exception:
             logging.exception(f"Fatal error occurred in: {self.get_current_scope()}")
@@ -1928,8 +2396,12 @@ class genAI:
         )
 
         try:
-            ai_submission_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
-            test_cases_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            ai_submission_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
+            )
+            test_cases_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            )
 
             logging.info("Gathering context for prompt to Ollama...")
 
@@ -1937,13 +2409,19 @@ class genAI:
             for iter, path in enumerate(test_cases_path.iterdir()):
                 case = dict()
 
-                with open(path / "console_command.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_command.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_command"] = file.read()
 
-                with open(path / "console_input.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_input.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_input"] = file.read()
 
-                with open(path / "expected_console_output.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "expected_console_output.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["expected_console_output.txt"] = file.read()
 
                 if any((path / "input_files").iterdir()):
@@ -1963,26 +2441,54 @@ class genAI:
                 test_cases[f"test_case_{iter}"] = case
 
             for cycle in range(0, 2):
-                logging.info(f"Ollama - Prompting model '{model}' with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code...")
+                logging.info(
+                    f"Ollama - Prompting model '{model}' with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code..."
+                )
                 prompt = list()
 
                 prompt.append({"role": "system", "content": system_instructions})
-                prompt.append({"role": "user", "content": self.processed_pdf if cycle == 0 else self.raw_pdf})
-                prompt.append({"role": "assistant", "content": "Assignment description received. Ready for test cases."})
-                prompt.append({"role": "user", "content": json.dumps(test_cases, indent=4)})
-                prompt.append({"role": "assistant", "content": "Test cases received. Ready to generate code."})
+                prompt.append(
+                    {
+                        "role": "user",
+                        "content": self.processed_pdf if cycle == 0 else self.raw_pdf,
+                    }
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Assignment description received. Ready for test cases.",
+                    }
+                )
+                prompt.append(
+                    {"role": "user", "content": json.dumps(test_cases, indent=4)}
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Test cases received. Ready to generate code.",
+                    }
+                )
                 prompt.append({"role": "user", "content": code_gen_conclusion})
 
                 for count in range(1, 6):
-                    logging.info(f"Ollama - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5")
-                    output_path = ai_submission_path / f"{model}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    logging.info(
+                        f"Ollama - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5"
+                    )
+                    output_path = (
+                        ai_submission_path
+                        / f"{model}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    )
                     output_path.mkdir(parents=True, exist_ok=True)
-                    with open(output_path / "main.cpp", mode="w", encoding="UTF-8") as file:
+                    with open(
+                        output_path / "main.cpp", mode="w", encoding="UTF-8"
+                    ) as file:
                         program = self.promptAI.prompt_ollama(prompt, model)
                         index_opening = program.find("```")
                         if index_opening != -1:
                             index_shift = program.find("\n", index_opening)
-                            program = program[index_opening + 7: program.find("```", index_shift)]
+                            program = program[
+                                index_opening + 7 : program.find("```", index_shift)
+                            ]
                         file.write(program)
 
         except Exception:
@@ -2019,7 +2525,9 @@ class genAI:
             prompt = list()
 
             if self.raw_pdf is None:
-                logging.info("Loading assignment PDF and converting to markdown using pymupdf4llm...")
+                logging.info(
+                    "Loading assignment PDF and converting to markdown using pymupdf4llm..."
+                )
                 self.raw_pdf = pymupdf4llm.to_markdown(self.pdf_path)
 
             prompt.append({"role": "system", "content": instructions})
@@ -2030,7 +2538,9 @@ class genAI:
             # with open("processed_pdf_grok.txt", mode = "w", encoding = "UTF-8") as file:
             #     file.write(self.processed_pdf)
 
-            logging.info("Successfully loaded and prepared the assignment PDF's text for prompting.")
+            logging.info(
+                "Successfully loaded and prepared the assignment PDF's text for prompting."
+            )
 
         except Exception:
             logging.exception(f"Fatal error occurred in: {self.get_current_scope()}")
@@ -2086,8 +2596,12 @@ class genAI:
         )
 
         try:
-            ai_submission_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
-            test_cases_path = genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            ai_submission_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "ai_submissions"
+            )
+            test_cases_path = (
+                genAI.BASE_PATH / f"assignment_{self.assignment_id}" / "test_cases"
+            )
 
             logging.info("Gathering context for prompt to Grok...")
 
@@ -2096,13 +2610,19 @@ class genAI:
             for iter, path in enumerate(test_cases_path.iterdir()):
                 case = dict()
 
-                with open(path / "console_command.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_command.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_command"] = file.read()
 
-                with open(path / "console_input.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "console_input.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["console_input"] = file.read()
 
-                with open(path / "expected_console_output.txt", mode="r", encoding="UTF-8") as file:
+                with open(
+                    path / "expected_console_output.txt", mode="r", encoding="UTF-8"
+                ) as file:
                     case["expected_console_output.txt"] = file.read()
 
                 if any((path / "input_files").iterdir()):
@@ -2122,27 +2642,60 @@ class genAI:
                 test_cases[f"test_case_{iter}"] = case
 
             for cycle in range(0, 2):
-                logging.info(f"Grok - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code...")
+                logging.info(
+                    f"Grok - Prompting model with {"processed PDF"if cycle == 0 else "raw PDF"} to generate code..."
+                )
                 prompt = list()
                 prompt.append({"role": "system", "content": system_message})
                 prompt.append({"role": "user", "content": code_gen_instructions})
-                prompt.append({"role": "assistant", "content": "Instructions received. Ready for assignment description."})
-                prompt.append({"role": "user", "content": self.processed_pdf if cycle == 0 else self.raw_pdf})
-                prompt.append({"role": "assistant", "content": "Assignment description received. Ready for test cases."})
-                prompt.append({"role": "user", "content": json.dumps(test_cases, indent=4)})
-                prompt.append({"role": "assistant", "content": "Test cases received. Ready to generate code."})
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Instructions received. Ready for assignment description.",
+                    }
+                )
+                prompt.append(
+                    {
+                        "role": "user",
+                        "content": self.processed_pdf if cycle == 0 else self.raw_pdf,
+                    }
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Assignment description received. Ready for test cases.",
+                    }
+                )
+                prompt.append(
+                    {"role": "user", "content": json.dumps(test_cases, indent=4)}
+                )
+                prompt.append(
+                    {
+                        "role": "assistant",
+                        "content": "Test cases received. Ready to generate code.",
+                    }
+                )
                 prompt.append({"role": "user", "content": code_gen_conclusion})
 
                 for count in range(1, 6):
-                    logging.info(f"Grok - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5")
-                    output_path = ai_submission_path / f"{self.promptAI.GROK_MODEL}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    logging.info(
+                        f"Grok - {"processed PDF" if cycle == 0 else "raw PDF"} - prompting cycle progress: {count} / 5"
+                    )
+                    output_path = (
+                        ai_submission_path
+                        / f"{self.promptAI.GROK_MODEL}_{"processed" if cycle == 0 else "raw"}_{count}"
+                    )
                     output_path.mkdir(parents=True, exist_ok=True)
-                    with open(output_path / "main.cpp", mode="w", encoding="UTF-8") as file:
+                    with open(
+                        output_path / "main.cpp", mode="w", encoding="UTF-8"
+                    ) as file:
                         program = self.promptAI.prompt_grok(prompt)
                         index_opening = program.find("```")
                         if index_opening != -1:
                             index_shift = program.find("\n", index_opening)
-                            program = program[index_opening + 7: program.find("```", index_shift)]
+                            program = program[
+                                index_opening + 7 : program.find("```", index_shift)
+                            ]
                         file.write(program)
 
         except Exception:
